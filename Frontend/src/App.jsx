@@ -5,6 +5,8 @@ import Dashboard from './pages/dashboard';
 import Login from './pages/login';
 
 // Páginas placeholder
+//Remplaza estas funciones con los componentes importados desde arribita de aqui
+// Agregas los archivos de cada pagina en src/pages
 const Assets = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">Assets</h1></div>;
 const QRScanner = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">QR Scanner</h1></div>;
 const Reports = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">Reports</h1></div>;
