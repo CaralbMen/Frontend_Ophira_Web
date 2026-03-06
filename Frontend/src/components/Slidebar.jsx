@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Slidebar = () => {
   const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-lg mx-3 mb-1 ${
@@ -45,7 +46,7 @@ const Slidebar = () => {
           <Package size={18} />
           <span className="font-medium text-sm">Assets</span>
         </NavLink>
-        <NavLink to="/qr-scanner" className={linkClass}>
+        <NavLink to="/scanner" className={linkClass}>
           <QrCode size={18} />
           <span className="font-medium text-sm">QR Scanner</span>
         </NavLink>
@@ -89,6 +90,16 @@ const Slidebar = () => {
           }`}>
           {isDark ? <Sun size={16} /> : <Moon size={16} />}
           <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+        <button 
+          onClick={() => navigate('/login')}
+          className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition ${
+            isDark
+              ? 'text-slate-300 hover:text-slate-100 hover:bg-slate-800'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+          }`}>
+          <LogOut size={16} color={'red'}/>
+          <span className='text-red-500'>Cerrar sesión</span>
         </button>
       </div>
     </div>

@@ -60,16 +60,6 @@ const Dashboard = () => {
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
-            {/* <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={18} /> */}
-            {/* <input 
-              type="text" 
-              placeholder="Buscar Activos" 
-              className={`pl-10 pr-4 py-2 w-80 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
-                isDark 
-                  ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' 
-                  : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500'
-              }`}
-            /> */}
           </div>
           <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
             <Plus size={18} />
