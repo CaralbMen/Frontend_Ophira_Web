@@ -50,11 +50,11 @@ const Slidebar = () => {
           <QrCode size={18} />
           <span className="font-medium text-sm">QR Scanner</span>
         </NavLink>
-        <NavLink to="/reports" className={linkClass}>
+        <NavLink to="/reportes" className={linkClass}>
           <FileText size={18} />
           <span className="font-medium text-sm">Reports</span>
         </NavLink>
-        <NavLink to="/history" className={linkClass}>
+        <NavLink to="/historial" className={linkClass}>
           <History size={18} />
           <span className="font-medium text-sm">History</span>
         </NavLink>
