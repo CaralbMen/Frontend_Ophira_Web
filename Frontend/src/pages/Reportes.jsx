@@ -366,10 +366,10 @@ const Reportes = () => {
                     {activity.categoria}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    <span className={`text-xs font-semibold ${
                       activity.estadoColor === 'green'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                        ? 'text-green-600'
+                        : 'text-yellow-600'
                     }`}>
                       {activity.estado}
                     </span>

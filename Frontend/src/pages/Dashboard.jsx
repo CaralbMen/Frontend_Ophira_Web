@@ -190,11 +190,11 @@ const Dashboard = () => {
                         <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{actividad.codigo}</span>
                       </td>
                       <td className="py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                          actividad.estadoColor === 'green' ? 'bg-green-100 text-green-700' :
-                          actividad.estadoColor === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
-                          actividad.estadoColor === 'blue' ? 'bg-blue-100 text-blue-700' :
-                          'bg-red-100 text-red-700'
+                        <span className={`text-xs font-medium ${
+                          actividad.estadoColor === 'green' ? 'text-green-600' :
+                          actividad.estadoColor === 'yellow' ? 'text-yellow-600' :
+                          actividad.estadoColor === 'blue' ? 'text-blue-600' :
+                          'text-red-600'
                         }`}>
                           {actividad.estado}
                         </span>

@@ -60,13 +60,13 @@ const Activos = () => {
   const getEstadoBadgeColor = (estado) => {
     switch (estado) {
       case 'Active':
-        return 'bg-green-100 text-green-700';
+        return 'text-green-600 font-semibold';
       case 'Mantenimiento':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'text-yellow-600 font-semibold';
       case 'Retirado':
-        return 'bg-red-100 text-red-700';
+        return 'text-red-600 font-semibold';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'text-slate-600 font-semibold';
     }
   };
 
@@ -194,7 +194,7 @@ const Activos = () => {
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.categoria}</td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.ubicacion}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeColor(activo.estado)}`}>
+                    <span className={`text-xs font-semibold ${getEstadoBadgeColor(activo.estado)}`}>
                       {activo.estado}
                     </span>
                   </td>

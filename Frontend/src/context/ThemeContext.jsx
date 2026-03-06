@@ -3,26 +3,23 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(false);
-
-  // Cargar tema del localStorage
-  useEffect(() => {
+  // Obtener tema del localStorage o sistema al inicializar
+  const [isDark, setIsDark] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-    } else {
-      // Detectar preferencia del sistema
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      return savedTheme === 'dark';
     }
-  }, []);
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
-  // Guardar tema y aplicar a document
+  // Aplicar tema al documento cuando cambia
   useEffect(() => {
+    const htmlElement = document.documentElement;
     if (isDark) {
-      document.documentElement.classList.add('dark');
+      htmlElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      htmlElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);

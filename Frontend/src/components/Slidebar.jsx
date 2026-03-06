@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import OphiraLogo from '../assets/OphiraLogo.png';
 
 const Slidebar = () => {
   const { isDark, toggleTheme } = useTheme();
@@ -24,9 +25,7 @@ const Slidebar = () => {
       {/* Logo */}
       <div className="px-6 py-6">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <QrCode size={20} className="text-white" />
-          </div>
+          <img src={OphiraLogo} alt="Ophira" className="w-10 h-10 aspect-square object-cover" />
           <div>
             <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
               Ophira <span className="text-blue-600">QR</span>
@@ -58,9 +57,9 @@ const Slidebar = () => {
           <History size={18} />
           <span className="font-medium text-sm">History</span>
         </NavLink>
-        <NavLink to="/settings" className={linkClass}>
-          <Settings size={18} />
-          <span className="font-medium text-sm">Settings</span>
+        <NavLink to="/auditorias" className={linkClass}>
+          <ClipboardCheck size={18} />
+          <span className="font-medium text-sm">Auditorias</span>
         </NavLink>
         <NavLink to="/usuarios" className={linkClass}>
           <Users size={18} />

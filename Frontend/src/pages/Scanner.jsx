@@ -1,4 +1,4 @@
-import { Camera, Flashlight, Search, Package, Clock } from 'lucide-react';
+import { Camera, CameraOff, Flashlight, Search, Package, Clock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 
@@ -15,8 +15,16 @@ const Scanner = () => {
       try {
         if (!cameraActive) {
           if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
+            // Detener todos los tracks explícitamente
+            streamRef.current.getTracks().forEach(track => {
+              track.enabled = false;
+              track.stop();
+            });
             streamRef.current = null;
+          }
+          if (videoRef.current) {
+            videoRef.current.srcObject = null;
+            videoRef.current.pause();
           }
           return;
         }
@@ -43,8 +51,15 @@ const Scanner = () => {
 
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          track.enabled = false;
+          track.stop();
+        });
         streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.pause();
       }
     };
   }, [cameraActive]);
@@ -94,12 +109,14 @@ const Scanner = () => {
               <h2 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                 Asset Scanner
               </h2>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Cámara Activa
-                </span>
-              </div>
+              {cameraActive && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Cámara Activa
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -109,7 +126,9 @@ const Scanner = () => {
           isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
           <div className="relative bg-black aspect-video flex items-center justify-center">
-            {cameraError ? (
+            {!cameraActive ? (
+              <div className="w-full h-full bg-black"></div>
+            ) : cameraError ? (
               <div className="text-center">
                 <p className="text-red-500 text-sm mb-4">{cameraError}</p>
                 <p className="text-slate-300 text-xs">Por favor, verifica los permisos de cámara</p>
@@ -146,7 +165,11 @@ const Scanner = () => {
                 className="w-10 h-10 bg-slate-800/80 hover:bg-slate-700 rounded-lg flex items-center justify-center transition backdrop-blur-sm"
                 title={cameraActive ? 'Desactivar cámara' : 'Activar cámara'}
               >
-                <Camera className="text-white" size={18} />
+                {cameraActive ? (
+                  <Camera className="text-white" size={18} />
+                ) : (
+                  <CameraOff className="text-white" size={18} />
+                )}
               </button>
             </div>
 
@@ -236,7 +259,7 @@ const Scanner = () => {
                 <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Estado
                 </span>
-                <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                <span className="inline-block text-xs font-semibold text-green-600">
                   ● {currentAsset.estado}
                 </span>
               </div>

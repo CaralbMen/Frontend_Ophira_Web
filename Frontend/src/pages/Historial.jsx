@@ -86,25 +86,15 @@ const Historial = () => {
   const getAccionBadgeColor = (color) => {
     switch (color) {
       case 'green':
-        return isDark 
-          ? 'bg-green-900/30 text-green-400 border-green-800' 
-          : 'bg-green-100 text-green-700 border-green-200';
+        return 'text-green-600 font-semibold';
       case 'yellow':
-        return isDark 
-          ? 'bg-yellow-900/30 text-yellow-400 border-yellow-800' 
-          : 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        return 'text-yellow-600 font-semibold';
       case 'red':
-        return isDark 
-          ? 'bg-red-900/30 text-red-400 border-red-800' 
-          : 'bg-red-100 text-red-700 border-red-200';
+        return 'text-red-600 font-semibold';
       case 'blue':
-        return isDark 
-          ? 'bg-blue-900/30 text-blue-400 border-blue-800' 
-          : 'bg-blue-100 text-blue-700 border-blue-200';
+        return 'text-blue-600 font-semibold';
       default:
-        return isDark 
-          ? 'bg-slate-700 text-slate-300 border-slate-600' 
-          : 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'text-slate-600 font-semibold';
     }
   };
 
@@ -283,7 +273,7 @@ const Historial = () => {
 
               {/* Acción */}
               <div className="col-span-2 flex items-center">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getAccionBadgeColor(item.accionColor)}`}>
+                <span className={`text-xs font-medium ${getAccionBadgeColor(item.accionColor)}`}>
                   {item.accion}
                 </span>
               </div>
