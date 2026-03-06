@@ -1,6 +1,9 @@
 import { Search, Plus, ArrowUp, Wrench, TrendingUp, DollarSign, Laptop, Printer, Armchair, FileText } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const Dashboard = () => {
+  const { isDark } = useTheme();
+
   // Datos de ejemplo
   const stats = [
     { 
@@ -54,15 +57,19 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+        <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
+            {/* <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={18} /> */}
+            {/* <input 
               type="text" 
               placeholder="Buscar Activos" 
-              className="pl-10 pr-4 py-2 w-80 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+              className={`pl-10 pr-4 py-2 w-80 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                isDark 
+                  ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' 
+                  : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500'
+              }`}
+            /> */}
           </div>
           <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
             <Plus size={18} />
@@ -76,14 +83,18 @@ const Dashboard = () => {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div key={index} className={`rounded-xl p-6 shadow-sm border transition ${
+              isDark 
+                ? 'bg-slate-800 border-slate-700' 
+                : 'bg-white border-slate-200'
+            }`}>
               <div className="flex items-start justify-between mb-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+                <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</p>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  stat.color === 'blue' ? 'bg-blue-100' :
-                  stat.color === 'orange' ? 'bg-orange-100' :
-                  stat.color === 'green' ? 'bg-green-100' :
-                  'bg-purple-100'
+                  stat.color === 'blue' ? isDark ? 'bg-blue-900/30' : 'bg-blue-100' :
+                  stat.color === 'orange' ? isDark ? 'bg-orange-900/30' : 'bg-orange-100' :
+                  stat.color === 'green' ? isDark ? 'bg-green-900/30' : 'bg-green-100' :
+                  isDark ? 'bg-purple-900/30' : 'bg-purple-100'
                 }`}>
                   <Icon className={
                     stat.color === 'blue' ? 'text-blue-600' :
@@ -93,7 +104,7 @@ const Dashboard = () => {
                   } size={20} />
                 </div>
               </div>
-              <h3 className="text-3xl font-bold text-slate-800 mb-1">{stat.value}</h3>
+              <h3 className={`text-3xl font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{stat.value}</h3>
               <p className={`text-sm flex items-center gap-1 ${
                 stat.trend === 'warning' ? 'text-orange-600' : 'text-green-600'
               }`}>
@@ -108,20 +119,24 @@ const Dashboard = () => {
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Distribución de Activos */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className={`rounded-xl p-6 shadow-sm border transition ${
+          isDark 
+            ? 'bg-slate-800 border-slate-700' 
+            : 'bg-white border-slate-200'
+        }`}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-800">Distribución de Activos</h2>
-            <button className="text-slate-400 hover:text-slate-600">•••</button>
+            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Distribución de Activos</h2>
+            <button className={`${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'}`}>•••</button>
           </div>
           
           {/* Donut Chart Placeholder */}
           <div className="flex items-center justify-center mb-8">
             <div className="relative w-48 h-48">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="12" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke={isDark ? '#334155' : '#e2e8f0'} strokeWidth="12" />
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#2563eb" strokeWidth="12" 
                   strokeDasharray="113 251" strokeDashoffset="0" />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#94a3b8" strokeWidth="12" 
+                <circle cx="50" cy="50" r="40" fill="none" stroke={isDark ? '#64748b' : '#94a3b8'} strokeWidth="12" 
                   strokeDasharray="75 251" strokeDashoffset="-113" />
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#9333ea" strokeWidth="12" 
                   strokeDasharray="63 251" strokeDashoffset="-188" />
@@ -135,50 +150,54 @@ const Dashboard = () => {
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                  <span className="text-sm text-slate-600">{item.categoria}</span>
+                  <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.categoria}</span>
                 </div>
-                <span className="text-sm font-semibold text-slate-800">{item.porcentaje}%</span>
+                <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>{item.porcentaje}%</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Actividad Reciente */}
-        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+        <div className={`lg:col-span-2 rounded-xl p-6 shadow-sm border transition ${
+          isDark 
+            ? 'bg-slate-800 border-slate-700' 
+            : 'bg-white border-slate-200'
+        }`}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-800">Actividad Reciente</h2>
+            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Actividad Reciente</h2>
             <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View All</button>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-slate-200">
+              <thead className={`border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                 <tr>
-                  <th className="text-left text-xs font-semibold text-slate-500 uppercase pb-3">Nombre</th>
-                  <th className="text-left text-xs font-semibold text-slate-500 uppercase pb-3">QR Código</th>
-                  <th className="text-left text-xs font-semibold text-slate-500 uppercase pb-3">Estado</th>
-                  <th className="text-left text-xs font-semibold text-slate-500 uppercase pb-3">Ubicación</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nombre</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>QR Código</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Estado</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ubicación</th>
                 </tr>
               </thead>
               <tbody>
                 {actividades.map((actividad, index) => {
                   const Icon = actividad.icon;
                   return (
-                    <tr key={index} className="border-b border-slate-100 last:border-0">
+                    <tr key={index} className={`border-b ${isDark ? 'border-slate-700 hover:bg-slate-700/50' : 'border-slate-100 hover:bg-slate-50'} last:border-0 transition`}>
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center">
-                            <Icon size={16} className="text-slate-600" />
+                          <div className={`w-8 h-8 rounded flex items-center justify-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                            <Icon size={16} className={isDark ? 'text-slate-300' : 'text-slate-600'} />
                           </div>
                           <div>
-                            <p className="font-medium text-slate-800 text-sm">{actividad.nombre}</p>
-                            <p className="text-xs text-slate-500">{actividad.codigo}</p>
+                            <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{actividad.nombre}</p>
+                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{actividad.codigo}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-4">
-                        <span className="text-sm text-slate-600">{actividad.codigo}</span>
+                        <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{actividad.codigo}</span>
                       </td>
                       <td className="py-4">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
@@ -192,8 +211,8 @@ const Dashboard = () => {
                       </td>
                       <td className="py-4">
                         <div>
-                          <p className="text-sm text-slate-700">{actividad.ubicacion}</p>
-                          <p className="text-xs text-slate-500">{actividad.piso}</p>
+                          <p className={`text-sm ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>{actividad.ubicacion}</p>
+                          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{actividad.piso}</p>
                         </div>
                       </td>
                     </tr>
