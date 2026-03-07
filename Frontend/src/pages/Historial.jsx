@@ -14,10 +14,10 @@ const Historial = () => {
       id: 1,
       fecha: 'Oct 24, 2023',
       hora: '14:32 PM',
-      usuario: 'Mark Smith',
+      usuario: 'Daniyel Paulín',
       userInitials: 'MS',
       userColor: 'bg-green-600',
-      assetId: 'ASSET-4921',
+      assetId: '12345',
       accion: 'Mantenimiento',
       accionColor: 'yellow',
       cambios: 'Cambio de estado a mantenimiento',
@@ -27,10 +27,10 @@ const Historial = () => {
       id: 2,
       fecha: 'Oct 24, 2023',
       hora: '09:18 AM',
-      usuario: 'Jane Doe',
+      usuario: 'Daniel Jr',
       userInitials: 'JD',
       userColor: 'bg-purple-600',
-      assetId: 'ASSET-5002',
+      assetId: '12346',
       accion: 'Activo',
       accionColor: 'green',
       cambios: 'Alta de activo',
@@ -40,10 +40,10 @@ const Historial = () => {
       id: 3,
       fecha: 'Oct 23, 2023',
       hora: '16:45 PM',
-      usuario: 'Alex Lee',
+      usuario: 'Perla Overa',
       userInitials: 'AL',
       userColor: 'bg-blue-600',
-      assetId: 'ASSET-1024',
+      assetId: '123457',
       accion: 'Mantenimiento',
       accionColor: 'yellow',
       cambios: 'Cambio de locación del activo',
@@ -53,10 +53,10 @@ const Historial = () => {
       id: 4,
       fecha: 'Oct 22, 2023',
       hora: '10:20 AM',
-      usuario: 'Sarah Ross',
+      usuario: 'Ricardo Velediaz',
       userInitials: 'SR',
       userColor: 'bg-red-600',
-      assetId: 'ASSET-0092',
+      assetId: '123458',
       accion: 'Retirado',
       accionColor: 'red',
       cambios: 'Baja del activo',
@@ -67,10 +67,10 @@ const Historial = () => {
       id: 5,
       fecha: 'Oct 21, 2023',
       hora: '09:00 AM',
-      usuario: 'System Auto',
+      usuario: 'Carlos Mendoza',
       userInitials: 'SYS',
       userColor: 'bg-orange-600',
-      assetId: 'ASSET-3310',
+      assetId: '123459',
       accion: 'Reporte generado',
       accionColor: 'blue',
       cambios: 'Se generó un reporte con la valoración de la',
@@ -120,7 +120,7 @@ const Historial = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-          Historial de Modificación de Activos
+          Historial de Actividad
         </h1>
         <div className="flex items-center gap-3">
           <button 
@@ -132,26 +132,24 @@ const Historial = () => {
             }`}
           >
             <Download size={16} />
-            Export Log
+            Exportar PDF
           </button>
           <button 
             onClick={handleRefresh}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
           >
             <RefreshCw size={16} />
-            Refresh
+            Refrescar
           </button>
         </div>
       </div>
 
-      {/* Filtros y búsqueda */}
       <div className={`rounded-xl p-6 border transition ${
         isDark 
           ? 'bg-slate-800 border-slate-700' 
           : 'bg-white border-slate-200'
       }`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
           <div className="relative">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${
               isDark ? 'text-slate-400' : 'text-slate-400'
@@ -169,7 +167,6 @@ const Historial = () => {
             />
           </div>
 
-          {/* Filter Dropdown */}
           <div className="relative">
             <select 
               value={filterAction}
@@ -188,7 +185,6 @@ const Historial = () => {
             </select>
           </div>
 
-          {/* Date Picker */}
           <div className="relative">
             <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 ${
               isDark ? 'text-slate-400' : 'text-slate-400'
@@ -205,10 +201,9 @@ const Historial = () => {
           </div>
         </div>
 
-        {/* Clear Filters */}
         <div className="mt-4 flex justify-end">
           <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            Clear Filters
+              Limpiar Filtros
           </button>
         </div>
       </div>
@@ -225,8 +220,8 @@ const Historial = () => {
             ? 'bg-slate-900/50 border-slate-700 text-slate-400' 
             : 'bg-slate-50 border-slate-200 text-slate-600'
         }`}>
-          <div className="col-span-2">Fecha/Hora</div>
-          <div className="col-span-2">Usuario</div>
+          <div className="col-span-2">Fecha</div>
+          <div className="col-span-2">Responsable</div>
           <div className="col-span-2">ID del Activo</div>
           <div className="col-span-2">Acción</div>
           <div className="col-span-3">Cambios</div>
@@ -256,9 +251,9 @@ const Historial = () => {
 
               {/* Usuario */}
               <div className="col-span-2 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full ${item.userColor} flex items-center justify-center text-white text-xs font-semibold`}>
+                {/* <div className={`w-9 h-9 rounded-full ${item.userColor} flex items-center justify-center text-white text-xs font-semibold`}>
                   {item.userInitials}
-                </div>
+                </div> */}
                 <div className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   {item.usuario}
                 </div>
@@ -300,71 +295,7 @@ const Historial = () => {
           ))}
         </div>
 
-        {/* Pagination */}
-        <div className={`flex items-center justify-between px-6 py-4 border-t ${
-          isDark 
-            ? 'border-slate-700 bg-slate-900/50' 
-            : 'border-slate-200 bg-slate-50'
-        }`}>
-          <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Showing 1 to 5 of {totalResults} results
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-lg border transition ${
-                currentPage === 1
-                  ? isDark 
-                    ? 'border-slate-700 text-slate-600 cursor-not-allowed' 
-                    : 'border-slate-200 text-slate-400 cursor-not-allowed'
-                  : isDark 
-                    ? 'border-slate-700 text-slate-300 hover:bg-slate-700' 
-                    : 'border-slate-300 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            {[1, 2, 3, '...', totalPages].map((page, index) => (
-              <button
-                key={index}
-                onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                disabled={page === '...'}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                  page === currentPage
-                    ? 'bg-blue-600 text-white'
-                    : page === '...'
-                    ? isDark 
-                      ? 'text-slate-500 cursor-default' 
-                      : 'text-slate-400 cursor-default'
-                    : isDark 
-                      ? 'text-slate-300 hover:bg-slate-700' 
-                      : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button 
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-lg border transition ${
-                currentPage === totalPages
-                  ? isDark 
-                    ? 'border-slate-700 text-slate-600 cursor-not-allowed' 
-                    : 'border-slate-200 text-slate-400 cursor-not-allowed'
-                  : isDark 
-                    ? 'border-slate-700 text-slate-300 hover:bg-slate-700' 
-                    : 'border-slate-300 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

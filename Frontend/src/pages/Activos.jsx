@@ -1,56 +1,122 @@
 import { Search, Plus, Download, Edit, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-
+import { useNavigate } from 'react-router-dom';
 const Activos = () => {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   // Datos de ejemplo
   const activos = [
     {
-      id: 'OPH-10024',
+      id: '10024',
+      nombre_activo: 'Dell Latitude 5520',
+      marca_activo: 'Dell',
+      Modelo_activo: 'Latitude 5520',
+      descripcion_activo: 'Laptop para desarrollo',
+      precio_original: '1200.00',
+      valor_residual: '800.00',
+      vida_util: '5',
+      fecha_compra_activo: '2023-10-24',
+      FK_id_responsable_activo: '1',
+      FK_id_categoria: '1',
+      FK_id_estado: '1',
+      FK_id_aula: '1',
+      multiparte: false,
       nombre: 'Dell Latitude 5520',
-      descripcion: 'Office Laptop',
-      categoria: 'Electronics',
-      ubicacion: 'HQ - Floor 3',
-      estado: 'Active',
+      responsable: 'Carlos Mendoza',
+      categoria: 'Electronicos',
+      ubicacion: 'Aula C107',
+      estado: 'Activo',
       estadoColor: 'green',
       fecha: 'Oct 24, 2023',
     },
     {
-      id: 'OPH-10025',
+      id: '10025',
+      nombre_activo: 'Herman Miller Aeron',
+      marca_activo: 'Herman Miller',
+      Modelo_activo: 'Aeron',
+      descripcion_activo: 'Silla ergonómica de oficina',
+      precio_original: '1500.00',
+      valor_residual: '1200.00',
+      vida_util: '10',
+      fecha_compra_activo: '2023-10-22',
+      FK_id_responsable_activo: '2',
+      FK_id_categoria: '2',
+      FK_id_estado: '1',
+      FK_id_aula: '2',
+      multiparte: false,
       nombre: 'Herman Miller Aeron',
-      descripcion: 'Ergonomic Chair',
-      categoria: 'Furniture',
-      ubicacion: 'HQ - Conf Room A',
-      estado: 'Active',
+      responsable: 'Daniyel Paulín',
+      categoria: 'Muebles',
+      ubicacion: 'Laboratorio B1',
+      estado: 'Activo',
       estadoColor: 'green',
       fecha: 'Oct 22, 2023',
     },
     {
-      id: 'OPH-10031',
+      id: '10031',
+      nombre_activo: 'Industrial Printer HP',
+      marca_activo: 'HP',
+      Modelo_activo: 'LaserJet Enterprise',
+      descripcion_activo: 'Impresora industrial de alta capacidad',
+      precio_original: '3500.00',
+      valor_residual: '2800.00',
+      vida_util: '7',
+      fecha_compra_activo: '2023-09-15',
+      FK_id_responsable_activo: '1',
+      FK_id_categoria: '1',
+      FK_id_estado: '2',
+      FK_id_aula: '3',
+      multiparte: false,
       nombre: 'Industrial Printer HP',
-      descripcion: 'Large Format',
-      categoria: 'Electronics',
-      ubicacion: 'Warehouse B',
+      responsable: 'Carlos Mendoza',
+      categoria: 'Electronicos',
+      ubicacion: 'Audiovisual A',
       estado: 'Mantenimiento',
       estadoColor: 'yellow',
       fecha: 'Sep 15, 2023',
     },
     {
-      id: 'OPH-09882',
+      id: '10042',
+      nombre_activo: 'Forklift Toyota 8F',
+      marca_activo: 'Toyota',
+      Modelo_activo: '8FD25',
+      descripcion_activo: 'Montacargas de 2.5 toneladas',
+      precio_original: '25000.00',
+      valor_residual: '20000.00',
+      vida_util: '15',
+      fecha_compra_activo: '2023-01-10',
+      FK_id_responsable_activo: '1',
+      FK_id_categoria: '3',
+      FK_id_estado: '1',
+      FK_id_aula: '4',
+      multiparte: false,
       nombre: 'Forklift Toyota 8F',
-      descripcion: 'Heavy Duty',
-      categoria: 'Machinery',
-      ubicacion: 'Distribution Center',
-      estado: 'Active',
+      responsable: 'Carlos Mendoza',
+      categoria: 'Vehiculos',
+      ubicacion: 'Audiovisual LT1',
+      estado: 'Activo',
       estadoColor: 'green',
       fecha: 'Jan 10, 2023',
     },
     {
-      id: 'OPH-08110',
+      id: '10050',
+      nombre_activo: 'Projector Epson 3000',
+      marca_activo: 'Epson',
+      Modelo_activo: 'PowerLite 3000',
+      descripcion_activo: 'Proyector multimedia de alta resolución',
+      precio_original: '1800.00',
+      valor_residual: '200.00',
+      vida_util: '5',
+      fecha_compra_activo: '2022-11-05',
+      FK_id_responsable_activo: '1',
+      FK_id_categoria: '1',
+      FK_id_estado: '4',
+      FK_id_aula: '1',
+      multiparte: false,
       nombre: 'Projector Epson 3000',
-      descripcion: 'Meeting Room 2',
-      categoria: 'Electronics',
-      ubicacion: 'Storage',
+      responsable: 'Carlos Mendoza',
+      categoria: 'Electronicos',
+      ubicacion: 'Oficina 5, piso 2, edificio A',
       estado: 'Retirado',
       estadoColor: 'red',
       fecha: 'Nov 05, 2022',
@@ -59,7 +125,7 @@ const Activos = () => {
 
   const getEstadoBadgeColor = (estado) => {
     switch (estado) {
-      case 'Active':
+      case 'Activo':
         return 'text-green-600 font-semibold';
       case 'Mantenimiento':
         return 'text-yellow-600 font-semibold';
@@ -72,7 +138,7 @@ const Activos = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      
       <div className="flex items-center justify-between pb-2">
         <div>
             <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Inventario de Activos</h1>
@@ -85,23 +151,21 @@ const Activos = () => {
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
           }`}>
             <Download size={16} />
-            Export
+            Exportar
           </button>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+          <button className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
             <Plus size={16} />
-            Add New Asset
+            Nuevo Activo
           </button>
         </div>
       </div>
 
-      {/* Filtros y búsqueda */}
       <div className={`rounded-lg p-4 border transition ${
         isDark 
           ? 'bg-slate-800 border-slate-700' 
           : 'bg-white border-slate-200'
       }`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Búsqueda */}
           <div className="relative">
             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={18} />
             <input
@@ -115,7 +179,6 @@ const Activos = () => {
             />
           </div>
 
-          {/* Categoría */}
           <select className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
             isDark
               ? 'bg-slate-700 border-slate-600 text-slate-100'
@@ -128,7 +191,6 @@ const Activos = () => {
             <option>Vehicles</option>
           </select>
 
-          {/* Estado */}
           <select className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
             isDark
               ? 'bg-slate-700 border-slate-600 text-slate-100'
@@ -142,7 +204,6 @@ const Activos = () => {
         </div>
       </div>
 
-      {/* Tabla de activos */}
       <div className={`rounded-lg border overflow-hidden transition ${
         isDark 
           ? 'bg-slate-800 border-slate-700' 
@@ -188,7 +249,7 @@ const Activos = () => {
                   <td className="px-4 py-3">
                     <div>
                       <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.nombre}</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{activo.descripcion}</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable: {activo.responsable}</p>
                     </div>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.categoria}</td>
@@ -205,14 +266,28 @@ const Activos = () => {
                         isDark
                           ? 'text-slate-500 hover:text-blue-400 hover:bg-blue-900/20'
                           : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
-                      }`}>
+                      }`}
+                        onClick={()=>navigate(`/activos/editar/${activo.id}`,{
+                          state:{
+                            modo: 'editar',
+                            activo: activo
+                          }
+                        })}
+                      >
                         <Edit size={18} />
                       </button>
                       <button className={`p-2 rounded-lg transition ${
                         isDark
                           ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
                           : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                      }`}>
+                      }`}
+                        onClick={()=>navigate(`/activos/eliminar/${activo.id}`,{
+                          state:{
+                            modo: 'eliminar',
+                            activo: activo
+                          }
+                        })}
+                      >
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -223,53 +298,7 @@ const Activos = () => {
           </table>
         </div>
 
-        {/* Paginación */}
-        <div className={`px-4 py-3 border-t flex items-center justify-between transition ${
-          isDark
-            ? 'bg-slate-700 border-slate-600'
-            : 'bg-slate-50 border-slate-200'
-        }`}>
-          <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Showing 1 to 5 of 42 results</p>
-          <div className="flex items-center gap-1">
-            <button className={`px-2 py-1 rounded border text-xs transition ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-            }`}>
-              &lt;
-            </button>
-            <button className="px-2 py-1 rounded bg-blue-600 text-white text-xs">1</button>
-            <button className={`px-2 py-1 rounded border text-xs transition ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-            }`}>
-              2
-            </button>
-            <button className={`px-2 py-1 rounded border text-xs transition ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-            }`}>
-              3
-            </button>
-            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>...</span>
-            <button className={`px-2 py-1 rounded border text-xs transition ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-            }`}>
-              8
-            </button>
-            <button className={`px-2 py-1 rounded border text-xs transition ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-            }`}>
-              &gt;
-            </button>
-          </div>
-        </div>
+        
       </div>
     </div>
   );

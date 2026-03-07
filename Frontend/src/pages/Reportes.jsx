@@ -11,7 +11,7 @@ const Reportes = () => {
       label: 'Total de Activos',
       value: '1,248',
       change: '+12%',
-      description: 'desde hace un mes',
+      description: 'Desde hace un mes',
       icon: FileText,
       color: 'blue',
     },
@@ -19,7 +19,7 @@ const Reportes = () => {
       label: 'Bienes Activos',
       value: '1,102',
       change: '88.3%',
-      description: 'utilization rate',
+      description: 'Grado de uso',
       icon: CheckCircle,
       color: 'green',
     },
@@ -27,7 +27,7 @@ const Reportes = () => {
       label: 'Mantenimiento',
       value: '45',
       change: '5 Overdue',
-      description: '',
+      description: 'Activos en mantenimiento',
       icon: AlertCircle,
       color: 'orange',
     },
@@ -35,23 +35,23 @@ const Reportes = () => {
       label: 'Valor Total',
       value: '$1.2M',
       change: '+3.2%',
-      description: 'apreciación',
+      description: 'Apreciación',
       icon: DollarSign,
       color: 'purple',
     },
   ];
 
   const acquisitionData = [
-    { month: 'Jan', value: 15 },
-    { month: 'Feb', value: 20 },
-    { month: 'Mar', value: 18 },
-    { month: 'Apr', value: 25 },
-    { month: 'May', value: 22 },
-    { month: 'Jun', value: 28 },
-    { month: 'Jul', value: 32 },
-    { month: 'Aug', value: 30 },
-    { month: 'Sep', value: 35 },
-    { month: 'Oct', value: 42 },
+    { month: 'Enero', value: 15 },
+    { month: 'Febrero', value: 20 },
+    { month: 'Marzo', value: 18 },
+    { month: 'Abril', value: 25 },
+    { month: 'Mayo', value: 22 },
+    { month: 'Junio', value: 28 },
+    { month: 'Julio', value: 32 },
+    { month: 'Agosto', value: 30 },
+    { month: 'Septiembre', value: 35 },
+    { month: 'Octubre', value: 42 },
   ];
 
   const maxValue = Math.max(...acquisitionData.map(d => d.value));
@@ -60,21 +60,25 @@ const Reportes = () => {
   const recentActivities = [
     {
       activo: 'MacBook Pro 16"',
-      descripcion: 'Apple Inc',
-      id: 'OPH-2023-001',
-      categoria: 'IT Equipment',
-      estado: 'Active',
+      responsable: 'Persona1',
+      id: '12345',
+      categoria: 'Cómputo',
+      estado: 'Activo',
       estadoColor: 'green',
+      ubicacion: 'Aula C107',
       fecha: 'Oct 24, 2023',
+      accion: 'Asignado a Carlos Mendoza',
     },
     {
       activo: 'HP LaserJet Pro',
-      descripcion: 'Floor 2, Room 204',
-      id: 'OPH-2023-045',
-      categoria: 'Peripherals',
+      responsable: 'Persona 2',
+      id: '12346',
+      categoria: 'Periféricos',
       estado: 'Mantenimiento',
       estadoColor: 'yellow',
+      ubicacion: 'Aula C208',
       fecha: 'Oct 22, 2023',
+      accion: 'Cambio de estado a mantenimiento',
     },
   ];
 
@@ -133,16 +137,12 @@ const Reportes = () => {
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
           }`}>
             <Download size={16} />
-            Export PDF
+            Exportar PDF
           </button>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-            <Download size={16} />
-            Export Excel
-          </button>
+        
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
@@ -176,9 +176,7 @@ const Reportes = () => {
         })}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Line Chart */}
         <div className={`lg:col-span-2 rounded-lg border p-6 ${
           isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
@@ -193,7 +191,6 @@ const Reportes = () => {
 
           <div className="relative h-72">
             <svg className="w-full h-full" viewBox="0 0 600 250">
-              {/* Grid */}
               {[0, 20, 40].map((y) => (
                 <line
                   key={y}
@@ -206,19 +203,15 @@ const Reportes = () => {
                 />
               ))}
 
-              {/* Y-axis */}
               <line x1="40" y1="50" x2="40" y2="200" stroke={isDark ? '#64748b' : '#cbd5e1'} strokeWidth="2" />
-              {/* X-axis */}
               <line x1="40" y1="200" x2="580" y2="200" stroke={isDark ? '#64748b' : '#cbd5e1'} strokeWidth="2" />
 
-              {/* Y-axis labels */}
               {[0, 20, 40].map((y) => (
                 <text key={`ylbl-${y}`} x="30" y={205 - (y / 40) * 150} textAnchor="end" fontSize="12" fill={isDark ? '#94a3b8' : '#64748b'}>
                   {y}
                 </text>
               ))}
 
-              {/* Line and points */}
               <polyline
                 points={acquisitionData.map((d, i) => {
                   const x = 40 + (i / (acquisitionData.length - 1)) * 540;
@@ -230,7 +223,6 @@ const Reportes = () => {
                 strokeWidth="2"
               />
 
-              {/* Area under line */}
               <polygon
                 points={[
                   '40,200',
@@ -245,7 +237,6 @@ const Reportes = () => {
                 fillOpacity="0.1"
               />
 
-              {/* Points */}
               {acquisitionData.map((d, i) => {
                 const x = 40 + (i / (acquisitionData.length - 1)) * 540;
                 const y = 200 - (d.value / maxValue) * 150;
@@ -254,7 +245,6 @@ const Reportes = () => {
                 );
               })}
 
-              {/* X-axis labels */}
               {acquisitionData.map((d, i) => (
                 <text
                   key={`xlabel-${i}`}
@@ -306,15 +296,14 @@ const Reportes = () => {
         </div>
       </div>
 
-      {/* Recent Activities Table */}
       <div className={`rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <div className="p-6 border-b" style={{ borderColor: isDark ? '#475569' : '#e2e8f0' }}>
           <div className="flex items-center justify-between">
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-              Actividades Recientes del Activos
+              Actividad Reciente
             </h3>
             <button className={`text-sm font-medium text-blue-600 hover:text-blue-700`}>
-              View all
+              Ver Todo
             </button>
           </div>
         </div>
@@ -327,10 +316,10 @@ const Reportes = () => {
                   ACTIVO
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  ID
+                  CATEGORIA
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  CATEGORIA
+                  RESPONSABLE
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   ESTADO
@@ -354,16 +343,16 @@ const Reportes = () => {
                           {activity.activo}
                         </p>
                         <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                          {activity.descripcion}
+                          ID: {activity.id}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.id}
+                    {activity.categoria}
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.categoria}
+                    {activity.responsable}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-xs font-semibold ${
@@ -375,12 +364,13 @@ const Reportes = () => {
                     </span>
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.fecha}
+                    {activity.fecha} <br />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      En {activity.ubicacion}
+                    </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <button className={`text-sm font-medium text-blue-600 hover:text-blue-700`}>
-                      Edit
-                    </button>
+                  <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {activity.accion}
                   </td>
                 </tr>
               ))}

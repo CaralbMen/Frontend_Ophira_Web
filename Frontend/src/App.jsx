@@ -8,6 +8,7 @@ import Activos from './pages/Activos';
 import Scanner from './pages/Scanner';
 import Reportes from './pages/Reportes';
 import Historial from './pages/Historial';
+import VerActivo from './pages/crudActivos/verActivo';
 // Páginas placeholder
 //Remplaza estas funciones con los componentes importados desde arribita de aqui
 // Agregas los archivos de cada pagina en src/pages
@@ -30,6 +31,9 @@ function App() {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/activos" element={<Activos />} />
+                <Route path="/activos/nuevo" element={<VerActivo />} />
+                <Route path="/activos/editar/:id" element={<VerActivo />} />
+                <Route path="/activos/eliminar/:id" element={<VerActivo />} />
                 <Route path="/scanner" element={<Scanner />} />
                 <Route path="/reportes" element={<Reportes />} />
                 <Route path="/historial" element={<Historial />} />

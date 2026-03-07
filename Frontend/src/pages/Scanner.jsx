@@ -10,22 +10,42 @@ const Scanner = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+
+      if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities?.();
+        if (capabilities?.torch) {
+          videoTrack
+            .applyConstraints({ advanced: [{ torch: false }] })
+            .catch(() => {
+            });
+        }
+      }
+
+      streamRef.current.getTracks().forEach(track => {
+        track.enabled = false;
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+
+    setFlashlightOn(false);
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.pause();
+    }
+  };
+
   useEffect(() => {
+    let cancelled = false;
+
     const initCamera = async () => {
       try {
         if (!cameraActive) {
-          if (streamRef.current) {
-            // Detener todos los tracks explícitamente
-            streamRef.current.getTracks().forEach(track => {
-              track.enabled = false;
-              track.stop();
-            });
-            streamRef.current = null;
-          }
-          if (videoRef.current) {
-            videoRef.current.srcObject = null;
-            videoRef.current.pause();
-          }
+          stopCameraStream();
           return;
         }
 
@@ -35,6 +55,17 @@ const Scanner = () => {
         };
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        
+        if (cancelled || !cameraActive) {
+          stream.getTracks().forEach(track => {
+            track.enabled = false;
+            track.stop();
+          });
+          return;
+        }
+
+        stopCameraStream();
         streamRef.current = stream;
 
         if (videoRef.current) {
@@ -50,26 +81,16 @@ const Scanner = () => {
     initCamera();
 
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.enabled = false;
-          track.stop();
-        });
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-        videoRef.current.pause();
-      }
+      cancelled = true;
+      stopCameraStream();
     };
   }, [cameraActive]);
 
-  // Datos de ejemplo
   const currentAsset = {
     nombre: 'Dell Precision 5570',
-    id: 'OPH-A21-19421',
-    categoria: 'Laptop / Tecnología',
-    encargado: 'John Smith',
+    id: '12345',
+    categoria: 'Tecnología',
+    encargado: 'Ricardo Veledíaz',
     estado: 'Activo',
     historial: 'Activo',
   };
@@ -77,19 +98,19 @@ const Scanner = () => {
   const recentScans = [
     {
       nombre: 'HP LaserJet Pro',
-      id: 'OPH-A21-19421',
+      id: '12346',
       tiempo: '10:32 AM',
       estado: 'Mantenimiento',
     },
     {
       nombre: 'Herman Miller Aeron',
-      id: 'OPH-A21-10332',
+      id: '12347',
       tiempo: '10:30 AM',
       estado: 'Activo',
     },
     {
       nombre: 'HP LaserJet Pro',
-      id: 'OPH-A21-10331',
+      id: '12348',
       tiempo: '06:48 AM',
       estado: 'Mantenimiento',
     },
@@ -97,9 +118,7 @@ const Scanner = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-      {/* Left Side - Scanner */}
       <div className="lg:col-span-2 space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -107,7 +126,7 @@ const Scanner = () => {
             </div>
             <div>
               <h2 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                Asset Scanner
+                Lector de QR
               </h2>
               {cameraActive && (
                 <div className="flex items-center gap-2">
@@ -121,7 +140,6 @@ const Scanner = () => {
           </div>
         </div>
 
-        {/* Camera View */}
         <div className={`rounded-lg border overflow-hidden ${
           isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
@@ -135,7 +153,6 @@ const Scanner = () => {
               </div>
             ) : (
               <>
-                {/* Video element */}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -144,11 +161,9 @@ const Scanner = () => {
                   style={{ transform: 'scaleX(-1)' }}
                 />
 
-                {/* QR Frame overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative w-64 h-64">
                     <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl"></div>
-                    {/* Corner accents */}
                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-400 rounded-tl-2xl"></div>
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-400 rounded-tr-2xl"></div>
                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-400 rounded-bl-2xl"></div>
@@ -158,7 +173,6 @@ const Scanner = () => {
               </>
             )}
 
-            {/* Camera Controls */}
             <div className="absolute top-4 right-4 flex flex-col gap-2">
               <button 
                 onClick={() => setCameraActive(!cameraActive)}
@@ -173,18 +187,16 @@ const Scanner = () => {
               </button>
             </div>
 
-            {/* Bottom instruction */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
               <div className="bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
                 <p className="text-white text-sm flex items-center gap-2">
                   <Package size={16} />
-                  Align the QR code within the frame
+                  Alinea el código QR dentro del marco
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Manual Input */}
           <div className={`p-4 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
             <p className={`text-xs mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               ¿La cámara no funciona? Inserta el ID del activo de manera manual
@@ -208,9 +220,7 @@ const Scanner = () => {
         </div>
       </div>
 
-      {/* Right Side - Results */}
       <div className="space-y-4">
-        {/* Current Scan */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className={`text-xs font-semibold uppercase tracking-wider ${
@@ -278,7 +288,6 @@ const Scanner = () => {
           </div>
         </div>
 
-        {/* Recent Scans */}
         <div>
           <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
             isDark ? 'text-slate-400' : 'text-slate-500'

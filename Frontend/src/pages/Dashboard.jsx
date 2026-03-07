@@ -1,9 +1,9 @@
 import { Search, Plus, ArrowUp, Wrench, TrendingUp, DollarSign, Laptop, Printer, Armchair, FileText } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-
+import { useNavigate } from 'react-router-dom';
 const Dashboard = () => {
   const { isDark } = useTheme();
-
+  const navigate = useNavigate();
   // Datos de ejemplo
   const stats = [
     { 
@@ -17,7 +17,7 @@ const Dashboard = () => {
     { 
       label: 'EN MANTENIMIENTO', 
       value: '18', 
-      change: '3 overdue', 
+      change: '3 por devaluarse', 
       icon: Wrench, 
       color: 'orange',
       trend: 'warning'
@@ -25,7 +25,7 @@ const Dashboard = () => {
     { 
       label: 'AÑADIDOS RECIENTEMENTE', 
       value: '45', 
-      change: 'Last 7 days', 
+      change: 'Últimos 7 días', 
       icon: TrendingUp, 
       color: 'green',
       trend: 'up'
@@ -41,34 +41,32 @@ const Dashboard = () => {
   ];
 
   const actividades = [
-    { nombre: 'MacBook Pro M2', codigo: 'OPH-8832', estado: 'Checked In', estadoColor: 'green', ubicacion: 'HQ - Server Room', piso: 'HQ - Floor 3', icon: Laptop },
-    { nombre: 'HP LaserJet Pro', codigo: 'OPH-1820', estado: 'Maintenance', estadoColor: 'yellow', ubicacion: 'Warehouse B', piso: 'etc', icon: Printer },
-    { nombre: 'Ergo Chair V2', codigo: 'OPH-4451', estado: 'Assigned', estadoColor: 'blue', ubicacion: 'Office 302', piso: 'etc', icon: Armchair },
-    { nombre: 'iPad Pro 12.9', codigo: 'OPH-9921', estado: 'Lost', estadoColor: 'red', ubicacion: 'Last Seen: Lobby', piso: 'etc', icon: FileText },
+    { nombre: 'MacBook Pro M2', codigo: '12345', estado: 'Revisión', responsable:'Carlos Mendoza', estadoColor: 'green', ubicacion: 'Aula 107', piso: 'Edificio C', icon: Laptop },
+    { nombre: 'HP LaserJet Pro', codigo: '12346', estado: 'Mantenimiento', responsable:'Daniel Jr', estadoColor: 'yellow', ubicacion: 'Aula 206', piso: 'Edificio D', icon: Printer },
+    { nombre: 'Ergo Chair V2', codigo: '12347', estado: 'Asignado', responsable:'Perla Olvera', estadoColor: 'blue', ubicacion: 'Aula 208', piso: 'Edificio A', icon: Armchair },
+    { nombre: 'iPad Pro 12.9', codigo: '12348', estado: 'Perdido', responsable:'Ricardo Veledíaz', estadoColor: 'red', ubicacion: 'Lab. 1', piso: 'Edificio B', icon: FileText },
   ];
 
   const distribucion = [
-    { categoria: 'Electronics', porcentaje: 45, color: 'bg-blue-600' },
-    { categoria: 'Furniture', porcentaje: 30, color: 'bg-slate-400' },
-    { categoria: 'Vehicles', porcentaje: 25, color: 'bg-purple-600' },
+    { categoria: 'Electronicos', porcentaje: 45, color: 'bg-blue-600' },
+    { categoria: 'Muebles', porcentaje: 30, color: 'bg-slate-400' },
+    { categoria: 'Vehiculos', porcentaje: 25, color: 'bg-purple-600' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
+          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
             <Plus size={18} />
-            Add New Asset
+            Nuevo Activo
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
@@ -106,20 +104,17 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Distribución de Activos */}
         <div className={`rounded-xl p-6 shadow-sm border transition ${
           isDark 
             ? 'bg-slate-800 border-slate-700' 
             : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Distribución de Activos</h2>
+            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Distribución por Categoría</h2>
             <button className={`${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'}`}>•••</button>
           </div>
           
-          {/* Donut Chart Placeholder */}
           <div className="flex items-center justify-center mb-8">
             <div className="relative w-48 h-48">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -134,7 +129,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Legend */}
           <div className="space-y-3">
             {distribucion.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
@@ -148,7 +142,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Actividad Reciente */}
         <div className={`lg:col-span-2 rounded-xl p-6 shadow-sm border transition ${
           isDark 
             ? 'bg-slate-800 border-slate-700' 
@@ -156,17 +149,15 @@ const Dashboard = () => {
         }`}>
           <div className="flex items-center justify-between mb-6">
             <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Actividad Reciente</h2>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View All</button>
+            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">Ver Todo</button>
           </div>
-
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className={`border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                 <tr>
-                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nombre</th>
-                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>QR Código</th>
-                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Estado</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Activo</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Código</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable</th>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ubicación</th>
                 </tr>
               </thead>
@@ -182,12 +173,12 @@ const Dashboard = () => {
                           </div>
                           <div>
                             <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{actividad.nombre}</p>
-                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{actividad.codigo}</p>
+                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>ID: {actividad.codigo}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-4">
-                        <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{actividad.codigo}</span>
+                        <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{actividad.responsable}</span>
                       </td>
                       <td className="py-4">
                         <span className={`text-xs font-medium ${
