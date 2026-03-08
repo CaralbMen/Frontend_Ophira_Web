@@ -9,7 +9,10 @@ import Scanner from './pages/Scanner';
 import Reportes from './pages/Reportes';
 import Historial from './pages/Historial';
 import Auditorias from './pages/Auditorias';
+import DetallesAuditoria from './pages/DetallesAuditoria';
 import VerActivo from './pages/crudActivos/verActivo';
+import Usuarios from './pages/Usuarios';
+import VerUsuario from './pages/crudUsuarios/verUsuario';
 // Páginas placeholder
 //Remplaza estas funciones con los componentes importados desde arribita de aqui
 // Agregas los archivos de cada pagina en src/pages
@@ -18,7 +21,6 @@ import VerActivo from './pages/crudActivos/verActivo';
 // const Reports = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">Reports</h1></div>;
 // const History = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">History</h1></div>;
 const Settings = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">Settings</h1></div>;
-const Usuarios = () => <div className="p-6"><h1 className="text-2xl font-bold text-slate-800">Usuarios</h1></div>;
 
 function App() {
 
@@ -39,8 +41,12 @@ function App() {
                 <Route path="/reportes" element={<Reportes />} />
                 <Route path="/historial" element={<Historial />} />
                 <Route path="/auditorias" element={<Auditorias />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/auditorias/:id" element={<DetallesAuditoria />} />
                 <Route path="/usuarios" element={<Usuarios />} />
+                <Route path="/usuarios/nuevo" element={<VerUsuario />} />
+                <Route path="/usuarios/editar/:id" element={<VerUsuario />} />
+                <Route path="/usuarios/eliminar/:id" element={<VerUsuario />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

@@ -1,9 +1,11 @@
 import { Search, Plus, Calendar, Filter, Eye } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const Auditorias = () => {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [filtroActivo, setFiltroActivo] = useState('todas');
 
   // Datos de ejemplo
@@ -246,7 +248,10 @@ const Auditorias = () => {
                     {auditoria.hora}
                   </td>
                   <td className="px-6 py-4">
-                    <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition">
+                    <button 
+                      onClick={() => navigate(`/auditorias/${auditoria.id}`)}
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition"
+                    >
                       Ver Detalles
                       <Eye size={16} />
                     </button>
