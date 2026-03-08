@@ -1,4 +1,4 @@
-import { Search, Plus, Calendar, Filter, Eye } from 'lucide-react';
+import { Search, Plus, Eye } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -6,7 +6,6 @@ import { useState } from 'react';
 const Auditorias = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
-  const [filtroActivo, setFiltroActivo] = useState('todas');
 
   // Datos de ejemplo
   const auditorias = [
@@ -78,20 +77,7 @@ const Auditorias = () => {
     },
   ];
 
-  const filtros = [
-    { id: 'todas', label: 'Todas' },
-    { id: 'completadas', label: 'Completadas' },
-    { id: 'progreso', label: 'En progreso' },
-    { id: 'pendientes', label: 'Pendientes' }
-  ];
-
-  const auditoriasFiltradas = auditorias.filter(auditoria => {
-    if (filtroActivo === 'todas') return true;
-    if (filtroActivo === 'completadas') return auditoria.estado === 'completada';
-    if (filtroActivo === 'progreso') return auditoria.estado === 'progreso';
-    if (filtroActivo === 'pendientes') return auditoria.estado === 'pendiente';
-    return true;
-  });
+  const auditoriasFiltradas = auditorias;
 
   const getColorAvatar = (index) => {
     const colores = [
@@ -153,40 +139,12 @@ const Auditorias = () => {
             }`}>
               <option>Esta semana</option>
               <option>Este mes</option>
-              <option>Último trimestre</option>
-              <option>Este año</option>
             </select>
-
-            <button className={`p-2 border rounded-lg transition ${
-              isDark
-                ? 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}>
-              <Filter size={18} />
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Pestañas de filtro */}
-      <div className="flex gap-2">
-        {filtros.map(filtro => (
-          <button
-            key={filtro.id}
-            onClick={() => setFiltroActivo(filtro.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filtroActivo === filtro.id
-                ? 'bg-blue-600 text-white'
-                : isDark
-                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {filtro.label}
-          </button>
-        ))}
-      </div>
-
+    
       {/* Tabla de auditorías */}
       <div className={`rounded-lg border overflow-hidden transition ${
         isDark 
@@ -228,9 +186,9 @@ const Auditorias = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${getColorAvatar(index)} flex items-center justify-center text-white text-sm font-semibold`}>
+                      {/* <div className={`w-10 h-10 rounded-full ${getColorAvatar(index)} flex items-center justify-center text-white text-sm font-semibold`}>
                         {auditoria.usuario.avatar}
-                      </div>
+                      </div> */}
                       <div>
                         <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                           {auditoria.usuario.nombre}

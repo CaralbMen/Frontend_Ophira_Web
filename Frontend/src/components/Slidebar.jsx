@@ -68,7 +68,12 @@ const Slidebar = () => {
       <div className={`p-4 border-t transition-colors duration-200 ${
         isDark ? 'border-slate-700' : 'border-slate-200'
       }`}>
-        <div className="flex items-center gap-3 mb-3">
+        <div 
+          onClick={() => navigate('/perfil')}
+          className={`flex items-center gap-3 mb-3 p-2 rounded-lg cursor-pointer transition ${
+            isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+          }`}
+        >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
             A
           </div>

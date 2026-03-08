@@ -13,6 +13,7 @@ import DetallesAuditoria from './pages/DetallesAuditoria';
 import VerActivo from './pages/crudActivos/verActivo';
 import Usuarios from './pages/Usuarios';
 import VerUsuario from './pages/crudUsuarios/verUsuario';
+import Perfil from './pages/Perfil';
 // Páginas placeholder
 //Remplaza estas funciones con los componentes importados desde arribita de aqui
 // Agregas los archivos de cada pagina en src/pages
@@ -46,6 +47,8 @@ function App() {
                 <Route path="/usuarios/nuevo" element={<VerUsuario />} />
                 <Route path="/usuarios/editar/:id" element={<VerUsuario />} />
                 <Route path="/usuarios/eliminar/:id" element={<VerUsuario />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/perfil/:id" element={<Perfil />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>

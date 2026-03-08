@@ -214,7 +214,12 @@ const Usuarios = () => {
                 <tr key={usuario.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-4 py-3">
                     <div>
-                      <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{usuario.nombre}</p>
+                      <p 
+                        onClick={() => navigate(`/perfil/${usuario.id}`)}
+                        className={`font-medium text-sm cursor-pointer hover:text-blue-600 transition ${isDark ? 'text-slate-100' : 'text-slate-900'}`}
+                      >
+                        {usuario.nombre}
+                      </p>
                       <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>ID: {usuario.id}</p>
                     </div>
                   </td>
