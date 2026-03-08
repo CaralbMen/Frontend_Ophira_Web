@@ -156,8 +156,8 @@ const Dashboard = () => {
               <thead className={`border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                 <tr>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Activo</th>
-                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Código</th>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable</th>
+                  <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Estado</th>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ubicación</th>
                 </tr>
               </thead>

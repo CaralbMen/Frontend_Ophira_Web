@@ -63,20 +63,7 @@ const Historial = () => {
       subcambios: 'Autorizado por encargado con ID: 213',
       accionBoton: 'Restaurar'
     },
-    {
-      id: 5,
-      fecha: 'Oct 21, 2023',
-      hora: '09:00 AM',
-      usuario: 'Carlos Mendoza',
-      userInitials: 'SYS',
-      userColor: 'bg-orange-600',
-      assetId: '123459',
-      accion: 'Reporte generado',
-      accionColor: 'blue',
-      cambios: 'Se generó un reporte con la valoración de la',
-      subcambios: 'presentación del semestre',
-      accionBoton: 'Descargar'
-    },
+   
   ];
 
   const totalResults = 248;
@@ -223,7 +210,7 @@ const Historial = () => {
           <div className="col-span-2">Fecha</div>
           <div className="col-span-2">Responsable</div>
           <div className="col-span-2">ID del Activo</div>
-          <div className="col-span-2">Acción</div>
+          <div className="col-span-2">Estado</div>
           <div className="col-span-3">Cambios</div>
           <div className="col-span-1 text-right">Acciones</div>
         </div>
