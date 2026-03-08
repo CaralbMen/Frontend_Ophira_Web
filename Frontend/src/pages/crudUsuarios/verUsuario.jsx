@@ -21,7 +21,8 @@ const VerUsuario = () => {
     telefono_usuario: '',
     fecha_registro_usuario: '',
     FK_id_rol: '',
-    FK_id_puesto: ''
+    FK_id_puesto: '',
+    activo_usuario: true
   });
 
   useEffect(() => {
@@ -35,7 +36,8 @@ const VerUsuario = () => {
         telefono_usuario: usuarioExistente.telefono_usuario || '',
         fecha_registro_usuario: usuarioExistente.fecha_registro_usuario || '',
         FK_id_rol: usuarioExistente.FK_id_rol || '',
-        FK_id_puesto: usuarioExistente.FK_id_puesto || ''
+        FK_id_puesto: usuarioExistente.FK_id_puesto || '',
+        activo_usuario: usuarioExistente.activo_usuario ?? usuarioExistente.estado === 'Activo'
       });
     } else if (id && modo !== 'crear') {
       // fetchUsuario(id).then(data => setFormData(data));
@@ -43,10 +45,10 @@ const VerUsuario = () => {
   }, [id, usuarioExistente, modo]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, type, value, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -340,6 +342,28 @@ const VerUsuario = () => {
                   <option value="5">Consultor</option>
                 </select>
               </div>
+
+              {modo === 'editar' && (
+                <div className="md:col-span-2">
+                  <label
+                    className={`inline-flex items-center gap-3 text-sm font-medium ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    } ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      name="activo_usuario"
+                      checked={Boolean(formData.activo_usuario)}
+                      onChange={handleChange}
+                      disabled={isReadOnly}
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span>
+                      Usuario {formData.activo_usuario ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-700">
