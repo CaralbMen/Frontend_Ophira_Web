@@ -270,7 +270,7 @@ const VerUsuario = () => {
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
                 }`}>
@@ -288,7 +288,7 @@ const VerUsuario = () => {
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${

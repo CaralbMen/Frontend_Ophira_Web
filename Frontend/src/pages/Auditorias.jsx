@@ -103,10 +103,10 @@ const Auditorias = () => {
             Gestión y control centralizado de revisiones de activos fijos
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+        {/* <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
           <Plus size={16} />
           Nueva Auditoría
-        </button>
+        </button> */}
       </div>
 
       {/* Filtros y búsqueda */}

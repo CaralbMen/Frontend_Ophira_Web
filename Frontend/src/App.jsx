@@ -12,7 +12,7 @@ import Auditorias from './pages/Auditorias';
 import DetallesAuditoria from './pages/DetallesAuditoria';
 import VerActivo from './pages/crudActivos/verActivo';
 import Usuarios from './pages/Usuarios';
-import VerUsuario from './pages/crudUsuarios/verUsuario';
+import CrearUsuario from './pages/crudUsuarios/crearUsuario';
 import Perfil from './pages/Perfil';
 // Páginas placeholder
 //Remplaza estas funciones con los componentes importados desde arribita de aqui
@@ -44,9 +44,10 @@ function App() {
                 <Route path="/auditorias" element={<Auditorias />} />
                 <Route path="/auditorias/:id" element={<DetallesAuditoria />} />
                 <Route path="/usuarios" element={<Usuarios />} />
-                <Route path="/usuarios/nuevo" element={<VerUsuario />} />
-                <Route path="/usuarios/editar/:id" element={<VerUsuario />} />
-                <Route path="/usuarios/eliminar/:id" element={<VerUsuario />} />
+                <Route path="/usuarios/nuevo" element={<CrearUsuario />} />
+                <Route path="/usuarios/ver/:id" element={<CrearUsuario />} />
+                <Route path="/usuarios/editar/:id" element={<CrearUsuario />} />
+                <Route path="/usuarios/eliminar/:id" element={<CrearUsuario />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/perfil/:id" element={<Perfil />} />
                 <Route path="/settings" element={<Settings />} />

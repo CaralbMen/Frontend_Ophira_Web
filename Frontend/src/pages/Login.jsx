@@ -2,18 +2,29 @@ import { useNavigate } from "react-router-dom"
 import { useTheme } from '../context/ThemeContext';
 import { Moon, Sun } from 'lucide-react';
 import OphiraLogo from '../assets/OphiraLogo.png';
+import { useState } from "react";
+//Llamamos a la desta para las peticiones al back
+import {api} from '../services/api';
 
 const Login = () => {
+    const {correo, setCorreo}= useState('');
+    const {password, setPassword}= useState('');
+
+    // Cosos para manejar el tema oscuro o claro
     const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const entrar = () => {
-        navigate('/dashboard');
+        const resultado = api.post('/auth/login', {correo, password});
+        //Desde el back estamos mandando un status en la respuesta con valor 200 si es que todo sale bien
+        if(resultado.status===200){
+            localStorage.setItem('token', resultado.data.token);
+            navigate('/dashboard');
+        }
     }
     return (
         <div className={`min-h-screen flex items-center justify-center px-4 relative ${
             isDark ? 'bg-slate-900' : 'bg-slate-100'
         }`}>
-            {/* Theme Toggle Button */}
             <button
                 onClick={toggleTheme}
                 className={`absolute top-6 right-6 p-2 rounded-lg transition ${
@@ -29,7 +40,6 @@ const Login = () => {
             <div className={`w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ${
                 isDark ? 'bg-slate-800' : 'bg-white'
             }`}>
-                {/* Left Side - Logo & Description */}
                 <div className={`p-12 flex flex-col items-center justify-center md:min-h-full bg-gradient-to-b ${
                     isDark ? 'from-slate-700 to-slate-800' : 'from-blue-50 to-blue-100'
                 }`}>
@@ -41,27 +51,27 @@ const Login = () => {
                     <p className={`text-center text-xs mt-8 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>© 2024 Ophira Systems, v2.4.0</p>
                 </div>
 
-                {/* Right Side - Login Form */}
                 <div className={`p-12 flex flex-col justify-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                     <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Bienvenido!!</h1>
                     <p className={`text-sm mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Ingresa tus credenciales para continuar</p>
 
-                    <form className="space-y-5">
+                    <form onSubmit={entrar} className="space-y-5">
                         <div>
                             <label htmlFor="email" className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                                Email o Usuario
+                                Email
                             </label>
                             <div className="relative">
                                 <input
                                     id="email"
                                     name="email"
                                     type="email"
-                                    placeholder="user@ophira.com"
+                                    placeholder="correo@gmail.com"
                                     className={`w-full rounded-lg border px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
                                         isDark 
                                             ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500' 
                                             : 'border-slate-300 text-slate-800 placeholder-slate-400'
                                     }`}
+                                    onChange={(e)=> setCorreo(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -80,6 +90,7 @@ const Login = () => {
                                         ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500' 
                                         : 'border-slate-300 text-slate-800 placeholder-slate-400'
                                 }`}
+                                onChange={(e)=> setPassword(e.target.value)}   
                             />
                         </div>
 
@@ -99,7 +110,7 @@ const Login = () => {
                         </div>
 
                         <button
-                            onClick={entrar}
+                            type="submit"
                             className="w-full rounded-lg bg-blue-600 text-white py-2.5 font-medium hover:bg-blue-700 transition-colors mt-6"
                         >
                             Iniciar Sesión
