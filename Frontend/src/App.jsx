@@ -12,8 +12,10 @@ import Auditorias from './pages/Auditorias';
 import DetallesAuditoria from './pages/DetallesAuditoria';
 import VerActivo from './pages/crudActivos/verActivo';
 import Usuarios from './pages/Usuarios';
-import CrearUsuario from './pages/crudUsuarios/crearUsuario';
+import CrearUsuario from './pages/crudUsuarios/verUsuario';
 import Perfil from './pages/Perfil';
+
+import ProtectedRoute from './components/protectedRoute';
 // Páginas placeholder
 //Remplaza estas funciones con los componentes importados desde arribita de aqui
 // Agregas los archivos de cada pagina en src/pages
@@ -30,31 +32,41 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path='/*' element={
+
+          <Route element={<ProtectedRoute />}>
+            <Route path='/*' element={
+              <Layout>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/activos" element={<Activos />} />
+                  <Route path="/activos/nuevo" element={<VerActivo />} />
+                  <Route path="/activos/editar/:id" element={<VerActivo />} />
+                  <Route path="/activos/eliminar/:id" element={<VerActivo />} />
+                  <Route path="/scanner" element={<Scanner />} />
+                  <Route path="/reportes" element={<Reportes />} />
+                  <Route path="/historial" element={<Historial />} />
+                  <Route path="/auditorias" element={<Auditorias />} />
+                  <Route path="/auditorias/:id" element={<DetallesAuditoria />} />
+                  <Route path="/usuarios" element={<Usuarios />} />
+                  <Route path="/usuarios/nuevo" element={<CrearUsuario />} />
+                  <Route path="/usuarios/ver/:id" element={<CrearUsuario />} />
+                  <Route path="/usuarios/editar/:id" element={<CrearUsuario />} />
+                  <Route path="/usuarios/eliminar/:id" element={<CrearUsuario />} />
+                  <Route path="/perfil" element={<Perfil />} />
+                  <Route path="/perfil/:id" element={<Perfil />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </Layout>
+            }/>
+          </Route>
+
+
+          {/* <Route path='/*' element={
             <Layout>
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/activos" element={<Activos />} />
-                <Route path="/activos/nuevo" element={<VerActivo />} />
-                <Route path="/activos/editar/:id" element={<VerActivo />} />
-                <Route path="/activos/eliminar/:id" element={<VerActivo />} />
-                <Route path="/scanner" element={<Scanner />} />
-                <Route path="/reportes" element={<Reportes />} />
-                <Route path="/historial" element={<Historial />} />
-                <Route path="/auditorias" element={<Auditorias />} />
-                <Route path="/auditorias/:id" element={<DetallesAuditoria />} />
-                <Route path="/usuarios" element={<Usuarios />} />
-                <Route path="/usuarios/nuevo" element={<CrearUsuario />} />
-                <Route path="/usuarios/ver/:id" element={<CrearUsuario />} />
-                <Route path="/usuarios/editar/:id" element={<CrearUsuario />} />
-                <Route path="/usuarios/eliminar/:id" element={<CrearUsuario />} />
-                <Route path="/perfil" element={<Perfil />} />
-                <Route path="/perfil/:id" element={<Perfil />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
+              
             </Layout>
-          }/>
+          }/> */}
           
         </Routes>
       </BrowserRouter>

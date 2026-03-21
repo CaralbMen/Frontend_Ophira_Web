@@ -7,17 +7,20 @@ import { useState } from "react";
 import {api} from '../services/api';
 
 const Login = () => {
-    const {correo, setCorreo}= useState('');
-    const {password, setPassword}= useState('');
+    const [correo, setCorreo]= useState('');
+    const [password, setPassword]= useState('');
 
     // Cosos para manejar el tema oscuro o claro
     const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
-    const entrar = () => {
-        const resultado = api.post('/auth/login', {correo, password});
-        //Desde el back estamos mandando un status en la respuesta con valor 200 si es que todo sale bien
-        if(resultado.status===200){
-            localStorage.setItem('token', resultado.data.token);
+    const entrar = async(e) => {
+        e.preventDefault();
+        console.log("Correo:", correo);
+        console.log("Contraseña:", password);
+
+        const resultado = await api.post('auth/login', {correo, password});
+        if(resultado.codigo===200){
+            localStorage.setItem('token', resultado.token);
             navigate('/dashboard');
         }
     }
