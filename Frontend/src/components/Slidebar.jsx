@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import OphiraLogo from '../assets/OphiraLogo.png';
+import { clearToken } from '../services/authStorage';
 
 const Slidebar = () => {
   const { isDark, toggleTheme } = useTheme();
@@ -94,7 +95,7 @@ const Slidebar = () => {
         </button>
         <button 
           onClick={() => {
-            localStorage.removeItem('token');
+            clearToken();
             navigate('/login');
           }}
           className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition ${

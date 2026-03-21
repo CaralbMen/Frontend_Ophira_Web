@@ -1,8 +1,9 @@
 const URL_BASE= "http://localhost:4000/api/";
+import { getToken } from './authStorage';
 
 export const api={
     get: async (endpoint) => {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         try {
             const response = await fetch(`${URL_BASE}${endpoint}`,{
                 headers:{
@@ -20,7 +21,7 @@ export const api={
         }
     },
     post: async (endpoint, data)=>{
-        const token = localStorage.getItem('token');
+        const token = getToken();
         try{
             const response= await fetch(`${URL_BASE}${endpoint}`,{
                 method: 'POST',
@@ -40,7 +41,7 @@ export const api={
         }
     },
     put: async (endpoint, data)=>{
-        const token = localStorage.getItem('token');
+        const token = getToken();
         try{
             const response= await fetch(`${URL_BASE}${endpoint}`,{
                 method: 'PUT',
@@ -60,7 +61,7 @@ export const api={
         }
     },
     delete: async (endpoint)=>{
-        const token = localStorage.getItem('token');
+        const token = getToken();
         try{
             const response= await fetch(`${URL_BASE}${endpoint}`,{
                 method: 'DELETE',

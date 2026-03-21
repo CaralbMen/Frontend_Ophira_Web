@@ -5,10 +5,12 @@ import OphiraLogo from '../assets/OphiraLogo.png';
 import { useState } from "react";
 //Llamamos a la desta para las peticiones al back
 import {api} from '../services/api';
+import { saveToken } from '../services/authStorage';
 
 const Login = () => {
     const [correo, setCorreo]= useState('');
     const [password, setPassword]= useState('');
+    const [rememberMe, setRememberMe] = useState(false);
 
     // Cosos para manejar el tema oscuro o claro
     const { isDark, toggleTheme } = useTheme();
@@ -20,7 +22,7 @@ const Login = () => {
 
         const resultado = await api.post('auth/login', {correo, password});
         if(resultado.codigo===200){
-            localStorage.setItem('token', resultado.token);
+            saveToken(resultado.token, rememberMe);
             navigate('/dashboard');
         }
     }
@@ -101,6 +103,8 @@ const Login = () => {
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
                                     className={`w-4 h-4 rounded text-blue-600 focus:ring-blue-500 ${
                                         isDark ? 'bg-slate-700 border-slate-600' : 'border-slate-300'
                                     }`}
