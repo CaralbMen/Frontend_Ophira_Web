@@ -4,6 +4,7 @@ import { getToken } from './authStorage';
 export const api={
     get: async (endpoint) => {
         const token = getToken();
+        console.log('Usando GET de API');
         try {
             const response = await fetch(`${URL_BASE}${endpoint}`,{
                 headers:{
@@ -22,6 +23,7 @@ export const api={
     },
     post: async (endpoint, data)=>{
         const token = getToken();
+        console.log('Usando POst de API');
         try{
             const response= await fetch(`${URL_BASE}${endpoint}`,{
                 method: 'POST',

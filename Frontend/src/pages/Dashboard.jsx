@@ -1,9 +1,43 @@
-import { Search, Plus, ArrowUp, Wrench, TrendingUp, DollarSign, Laptop, Printer, Armchair, FileText } from 'lucide-react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, Laptop, Printer, Armchair, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+
+// Usamos la api para consumir el back
+import {api} from '../services/api';
+
 const Dashboard = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [showUbicacionMenu, setShowUbicacionMenu] = useState(false);
+  const [activeCreateForm, setActiveCreateForm] = useState('edificio');
+
+  const [edificios, setEdificios] = useState([]);
+  const [pisosXedificio, setPisosXedificio] = useState([]);
+  const [aulasXpiso, setAulasXpiso] = useState([]);
+  const [operationStatus, setOperationStatus] = useState({ type: '', message: '' });
+
+  const [selectedEdificio, setSelectedEdificio] = useState('');
+  const [selectedPiso, setSelectedPiso] = useState('');
+  const [selectedAula, setSelectedAula] = useState('');
+  // Para nuevas ubicaciones 
+  const [nuevoEdificio, setNuevoEdificio] = useState({
+    clave: '',
+    nombre: '',
+    cantidad_pisos: '',
+    direccion: '',
+  });
+  const [nuevoPiso, setNuevoPiso] = useState({
+    edificioId: '',
+    numero_piso: '',
+    cantidad_aulas: '',
+  });
+  const [nuevaAula, setNuevaAula] = useState({
+    edificioId: '',
+    pisoId: '',
+    numero_aula: '',
+    tipo: 'Aula',
+  });
   // Datos de ejemplo
   const stats = [
     { 
@@ -53,12 +87,469 @@ const Dashboard = () => {
     { categoria: 'Vehiculos', porcentaje: 25, color: 'bg-purple-600' },
   ];
 
+  const edificioSeleccionadoParaPiso = edificios.find((item) => item.id_edificio === nuevoPiso.edificioId);
+  const pisoSeleccionadoParaAula = pisosXedificio.find((item) => item.id_piso === nuevaAula.pisoId);
+
+  const handleSelectEdificio = async (value) => {
+    setSelectedEdificio(value);
+    setSelectedPiso('');
+    setSelectedAula('');
+
+    if (!value) {
+      setPisosXedificio([]);
+      setAulasXpiso([]);
+      return;
+    }
+
+    await cargarPisosXEdificio(value);
+  };
+
+  const handleSelectPiso = async (value) => {
+    setSelectedPiso(value);
+    setSelectedAula('');
+
+    if (!value) {
+      setAulasXpiso([]);
+      return;
+    }
+
+    await cargarAulasXpiso(value);
+  };
+
+  const crearEdificio = async() => {
+    if (!nuevoEdificio.clave || !nuevoEdificio.nombre || !nuevoEdificio.cantidad_pisos || !nuevoEdificio.direccion) {
+      setOperationStatus({ type: 'error', message: 'Completa todos los campos para crear el edificio.' });
+      return;
+    }
+    const totalPisos = Number(nuevoEdificio.cantidad_pisos);
+    if (totalPisos <= 0) {
+      setOperationStatus({ type: 'error', message: 'La cantidad de pisos debe ser mayor a 0.' });
+      return;
+    }
+    try {
+      console.log('nuevo edificio', nuevoEdificio);
+      const response= await api.post('ubicacion/edificio', nuevoEdificio);
+      console.log(response);
+      setNuevoEdificio({ clave: '', nombre: '', cantidad_pisos: '', direccion: '' });
+      setOperationStatus({ type: 'success', message: 'Edificio creado correctamente.' });
+      await cargarEdificiosParaPiso();
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al crear edificio: ${error.message}` });
+    }
+  };
+
+  const cargarEdificiosParaPiso = async() => {
+    try{
+      const response = await api.get('ubicacion/edificio');
+      setEdificios(response);
+      console.log(response);
+    } catch (error) {
+      console.error('Error al cargar edificios:', error);
+      setOperationStatus({ type: 'error', message: `Error al cargar edificios: ${error.message}` });
+    }
+  }
+
+  const cargarPisosXEdificio = async (edificioId) => {
+    try{
+      const response= await api.get(`ubicacion/piso/${edificioId}`);
+      setPisosXedificio(response);
+      console.log(response);
+    }catch (error) {
+      console.error('Error al cargar pisos:', error);
+      setOperationStatus({ type: 'error', message: `Error al cargar pisos: ${error.message}` });
+    }
+  }
+  const crearPiso = async() => {
+    if (!nuevoPiso.edificioId || !nuevoPiso.numero_piso || !nuevoPiso.cantidad_aulas) {
+      setOperationStatus({ type: 'error', message: 'Completa todos los campos para crear el piso.' });
+      return;
+    }
+    try {
+      console.log('nuevo piso', nuevoPiso);
+      const result= await api.post('ubicacion/piso', {
+        id_edificio: nuevoPiso.edificioId,
+        numero_piso: nuevoPiso.numero_piso,
+        cantidad_aulas: nuevoPiso.cantidad_aulas,
+      });
+      console.log(result);
+
+      setNuevoPiso({ edificioId: '', numero_piso: '', cantidad_aulas: '' });
+      setOperationStatus({ type: 'success', message: 'Piso creado correctamente.' });
+      await cargarPisosXEdificio(result.id_edificio ?? nuevoPiso.edificioId);
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al crear piso: ${error.message}` });
+    }
+  };
+  const cargarAulasXpiso= async(pisoId)=>{
+    try{
+      const response= await api.get(`ubicacion/aula/${pisoId}`);
+      setAulasXpiso(response);
+      console.log(response);
+    }catch (error) {
+      console.error('Error al cargar aulas:', error);
+      setOperationStatus({ type: 'error', message: `Error al cargar aulas: ${error.message}` });
+    }
+  }
+  const crearAula = async() => {
+    if (!nuevaAula.edificioId || !nuevaAula.pisoId || !nuevaAula.numero_aula || !nuevaAula.tipo) {
+      setOperationStatus({ type: 'error', message: 'Completa todos los campos para crear el aula.' });
+      return;
+    }
+    try {
+      console.log('nueva aula', nuevaAula);
+      const result= await api.post('ubicacion/aula', {
+        id_piso: nuevaAula.pisoId,
+        numero_aula: nuevaAula.numero_aula,
+        tipo: nuevaAula.tipo,
+      });
+      console.log(result);
+      setNuevaAula({ edificioId: '', pisoId: '', numero_aula: '', tipo: 'Aula' });
+      setOperationStatus({ type: 'success', message: 'Aula creada correctamente.' });
+      await cargarAulasXpiso(result.id_piso ?? nuevaAula.pisoId);
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al crear aula: ${error.message}` });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="relative">
+            <button
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border transition ${
+                isDark
+                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+              onClick={() => {
+                setShowUbicacionMenu((prev) => {
+                  const nextOpen = !prev;
+                  if (nextOpen) {
+                    cargarEdificiosParaPiso();
+                  }
+                  return nextOpen;
+                });
+              }}
+              type="button"
+            >
+              <MapPin size={18} />
+              Nueva Ubicacion
+              <ChevronDown size={16} className={`transition ${showUbicacionMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showUbicacionMenu && (
+              <div className={`absolute right-0 mt-2 w-[440px] max-w-[90vw] rounded-xl border shadow-lg z-20 p-4 space-y-4 ${
+                isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Gestion de Ubicaciones</h3>
+                  <button
+                    className={`p-1 rounded transition ${
+                      isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                    }`}
+                    onClick={() => setShowUbicacionMenu(false)}
+                    type="button"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {operationStatus.message && (
+                  <div className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                    operationStatus.type === 'success'
+                      ? isDark
+                        ? 'bg-green-950/40 border-green-800 text-green-300'
+                        : 'bg-green-50 border-green-200 text-green-700'
+                      : isDark
+                        ? 'bg-red-950/40 border-red-800 text-red-300'
+                        : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    {operationStatus.message}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <select
+                    value={selectedEdificio}
+                    onChange={(event) => handleSelectEdificio(event.target.value)}
+                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  >
+                    <option value="">Selecciona edificio</option>
+                    {edificios.map((edificio) => (
+                      <option key={edificio.id_edificio} value={edificio.id_edificio}>{edificio.nombre}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedPiso}
+                    onChange={(event) => handleSelectPiso(event.target.value)}
+                    disabled={!selectedEdificio}
+                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
+                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  >
+                    <option value="">Selecciona piso</option>
+                    {pisosXedificio.map((piso) => (
+                      <option key={piso.id_piso} value={piso.id_piso}>Piso {piso.numero_piso}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedAula}
+                    onChange={(event) => setSelectedAula(event.target.value)}
+                    disabled={!selectedPiso}
+                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
+                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  >
+                    <option value="">Selecciona aula</option>
+                    {aulasXpiso.map((aula) => (
+                      <option key={aula.id_aula ?? aula.numero_aula} value={aula.id_aula ?? aula.numero_aula}>
+                        {aula.numero_aula} ({aula.tipo ?? 'Aula'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                      activeCreateForm === 'edificio'
+                        ? 'bg-blue-600 text-white'
+                        : isDark
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    onClick={() => setActiveCreateForm('edificio')}
+                    type="button"
+                  >
+                    <Building2 size={14} />
+                    Nuevo edificio
+                  </button>
+                  <button
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                      activeCreateForm === 'piso'
+                        ? 'bg-blue-600 text-white'
+                        : isDark
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    onClick={() => {
+                      setActiveCreateForm('piso')
+                      cargarEdificiosParaPiso();
+                    }}
+                    type="button"
+                  >
+                    <Layers size={14} />
+                    Nuevo piso
+                  </button>
+                  <button
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                      activeCreateForm === 'aula'
+                        ? 'bg-blue-600 text-white'
+                        : isDark
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    onClick={() => {
+                      setActiveCreateForm('aula');
+                      cargarEdificiosParaPiso();
+                    }}
+                    type="button"
+                  >
+                    <DoorOpen size={14} />
+                    Nueva aula
+                  </button>
+                </div>
+
+                {activeCreateForm === 'edificio' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Clave"
+                      value={nuevoEdificio.clave}
+                      onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, clave: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nombre"
+                      value={nuevoEdificio.nombre}
+                      onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, nombre: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Cantidad de pisos"
+                      value={nuevoEdificio.cantidad_pisos}
+                      onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, cantidad_pisos: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Direccion"
+                      value={nuevoEdificio.direccion}
+                      onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, direccion: event.target.value }))}
+                      className={`md:col-span-2 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <button
+                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      onClick={crearEdificio}
+                      type="button"
+                    >
+                      Crear edificio
+                    </button>
+                  </div>
+                )}
+
+                {activeCreateForm === 'piso' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <select
+                      value={nuevoPiso.edificioId}
+                      onChange={(event) => {
+                        const edificioId = event.target.value;
+                        setNuevoPiso((prev) => ({ ...prev, edificioId, numero_piso: '' }));
+                      }}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">Selecciona edificio</option>
+                      {edificios.map((edificio) => (
+                        <option key={edificio.id_edificio} value={edificio.id_edificio}>{edificio.nombre}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={nuevoPiso.numero_piso}
+                      onChange={(event) => setNuevoPiso((prev) => ({ ...prev, numero_piso: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">Numero de piso</option>
+                      {Array.from({ length: Number(edificioSeleccionadoParaPiso?.cantidad_pisos ?? 0) }, (_, index) => {
+                        const numero = index + 1;
+                        return (
+                          <option key={numero} value={numero}>
+                            Piso {numero}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select
+                      value={nuevoPiso.cantidad_aulas}
+                      onChange={(event) => setNuevoPiso((prev) => ({ ...prev, cantidad_aulas: event.target.value }))}
+                      className={`md:col-span-2 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">Cantidad de aulas</option>
+                      {Array.from({ length: 60 }, (_, index) => {
+                        const cantidad = index + 1;
+                        return (
+                          <option key={cantidad} value={cantidad}>
+                            {cantidad} aula{cantidad > 1 ? 's' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <button
+                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      onClick={crearPiso}
+                      type="button"
+                    >
+                      Crear piso
+                    </button>
+                  </div>
+                )}
+
+                {activeCreateForm === 'aula' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <select
+                      value={nuevaAula.edificioId}
+                      onChange={async (event) => {
+                        const edificioId = event.target.value;
+                        setNuevaAula((prev) => ({ ...prev, edificioId, pisoId: '', numero_aula: '' }));
+                        if (!edificioId) {
+                          setPisosXedificio([]);
+                          return;
+                        }
+                        await cargarPisosXEdificio(edificioId);
+                      }}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">Selecciona edificio</option>
+                      {edificios.map((edificio) => (
+                        <option key={edificio.id_edificio} value={edificio.id_edificio}>{edificio.nombre}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={nuevaAula.pisoId}
+                      onChange={(event) => setNuevaAula((prev) => ({ ...prev, pisoId: event.target.value, numero_aula: '' }))}
+                      disabled={!nuevaAula.edificioId}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">Selecciona piso</option>
+                      {pisosXedificio.map((piso) => (
+                        <option key={piso.id_piso} value={piso.id_piso}>Piso {piso.numero_piso}</option>
+                      ))}
+                    </select>
+                    {/* <input */}
+                    <select
+                      value={nuevaAula.numero_aula}
+                      onChange={(event) => setNuevaAula((prev) => ({ ...prev, numero_aula: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                      disabled={!nuevaAula.pisoId}
+                    >
+                      <option value="">Numero de aula</option>
+                      {Array.from({ length: Number(pisoSeleccionadoParaAula?.cantidad_aulas ?? 0) }, (_, index) => {
+                        const numero = index + 1 < 10 ? String(index + 1).padStart(2, '0') : String(index + 1);
+                        return (
+                          <option key={numero} value={numero}>
+                            Aula {numero}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Tipo"
+                      value={nuevaAula.tipo}
+                      onChange={(event) => setNuevaAula((prev) => ({ ...prev, tipo: event.target.value }))}
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <button
+                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      onClick={crearAula}
+                      type="button"
+                    >
+                      Crear aula
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
             <Plus size={18} />

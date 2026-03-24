@@ -233,7 +233,7 @@ const Activos = () => {
                   ESTADO
                 </th>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  FECHA
+                  FECHA REGISTRO
                 </th>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   ACCIONES
