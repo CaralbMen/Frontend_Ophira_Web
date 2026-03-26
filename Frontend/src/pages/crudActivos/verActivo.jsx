@@ -2,6 +2,101 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react';
+import { api } from '../../services/api';
+
+const normalizarOpciones = (items) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => {
+      const idRaw =
+        item?.id ??
+        item?.id_categoria ??
+        item?.id_metodo_depreciacion ??
+        item?.id_estado_activo ??
+        item?.FK_id_categoria ??
+        item?.FK_id_estado;
+
+      const nombreRaw =
+        item?.nombre ??
+        item?.descripcion ??
+        item?.nombre_categoria ??
+        item?.categoria ??
+        item?.nombre_metodo ??
+        item?.metodo ??
+        item?.nombre_estado ??
+        item?.estado;
+
+      if (idRaw === undefined || idRaw === null || !nombreRaw) {
+        return null;
+      }
+
+      return {
+        id: String(idRaw),
+        nombre: String(nombreRaw)
+      };
+    })
+    .filter(Boolean);
+};
+
+const extraerItems = (response) => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.data?.aulas)) {
+    return response.data.aulas;
+  }
+
+  if (Array.isArray(response?.aulas)) {
+    return response.aulas;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response?.items)) {
+    return response.items;
+  }
+
+  if (Array.isArray(response?.result)) {
+    return response.result;
+  }
+
+  return [];
+};
+
+const normalizarAulas = (items) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => {
+      const idRaw =
+        item?.id_aula ??
+        item?.id ??
+        item?.aula ??
+        item?.codigo_aula ??
+        item?.codigo;
+
+      const nombreRaw = idRaw;
+
+      if (idRaw === undefined || idRaw === null || !nombreRaw) {
+        return null;
+      }
+
+      return {
+        id: String(idRaw),
+        id_aula: String(idRaw),
+        nombre: String(nombreRaw)
+      };
+    })
+    .filter(Boolean);
+};
 
 const VerActivo = () => {
   const { isDark } = useTheme();
@@ -13,18 +108,18 @@ const VerActivo = () => {
   const activoExistente = location.state?.activo;
 
   const [formData, setFormData] = useState({
-    nombre_activo: '',
-    marca_activo: '',
-    Modelo_activo: '',
-    descripcion_activo: '',
-    precio_original: '',
+    nombre: '',
+    descripcion: '',
+    modelo: '',
+    numero_serie: '',
+    fecha_compra: '',
+    precio_compra: '',
     valor_residual: '',
-    vida_util: '',
-    fecha_compra_activo: '',
-    FK_id_responsable_activo: '',
-    FK_id_categoria: '',
-    FK_id_estado: '',
-    FK_id_aula: '',
+    vida_util_anios: '',
+    id_metodo_depreciacion: '1',
+    id_categoria: '',
+    id_estado_activo: '',
+    id_aula: '',
     multiparte: false
   });
 
@@ -32,21 +127,28 @@ const VerActivo = () => {
     { id: 1, nombre_parte: '', FK_id_aula_parte: '' }
   ]);
 
+  const [categorias, setCategorias] = useState([]);
+  const [metodosDepreciacion, setMetodosDepreciacion] = useState([]);
+  const [estadosActivo, setEstadosActivo] = useState([]);
+  const [aulas, setAulas] = useState([]);
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+
   useEffect(() => {
     if (activoExistente) {
       setFormData({
-        nombre_activo: activoExistente.nombre_activo || '',
-        marca_activo: activoExistente.marca_activo || '',
-        Modelo_activo: activoExistente.Modelo_activo || '',
-        descripcion_activo: activoExistente.descripcion_activo || '',
-        precio_original: activoExistente.precio_original || '',
+        nombre: activoExistente.nombre || activoExistente.nombre_activo || '',
+        descripcion: activoExistente.descripcion || activoExistente.descripcion_activo || '',
+        modelo: activoExistente.modelo || activoExistente.Modelo_activo || '',
+        numero_serie: activoExistente.numero_serie || '',
+        fecha_compra: activoExistente.fecha_compra || activoExistente.fecha_compra_activo || '',
+        precio_compra: activoExistente.precio_compra || activoExistente.precio_original || '',
         valor_residual: activoExistente.valor_residual || '',
-        vida_util: activoExistente.vida_util || '',
-        fecha_compra_activo: activoExistente.fecha_compra_activo || '',
-        FK_id_responsable_activo: activoExistente.FK_id_responsable_activo || '',
-        FK_id_categoria: activoExistente.FK_id_categoria || '',
-        FK_id_estado: activoExistente.FK_id_estado || '',
-        FK_id_aula: activoExistente.FK_id_aula || '',
+        vida_util_anios: activoExistente.vida_util_anios || activoExistente.vida_util || '',
+        id_metodo_depreciacion: String(activoExistente.id_metodo_depreciacion || '1'),
+        id_categoria: String(activoExistente.id_categoria || activoExistente.FK_id_categoria || ''),
+        id_estado_activo: String(activoExistente.id_estado_activo || activoExistente.FK_id_estado || ''),
+        id_aula: activoExistente.id_aula || activoExistente.FK_id_aula || '',
         multiparte: activoExistente.multiparte || false
       });
       
@@ -57,6 +159,31 @@ const VerActivo = () => {
       // fetchActivo(id).then(data => setFormData(data));
     }
   }, [id, activoExistente, modo]);
+
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      setCargandoCatalogos(true);
+      try {
+        const [categoriasResponse, metodosResponse, estadosResponse, aulasResponse] = await Promise.all([
+          api.get('categorias'),
+          api.get('metodos-depreciacion'),
+          api.get('estados-activo'),
+          api.get('ubicacion/aulas')
+        ]);
+
+        setCategorias(normalizarOpciones(extraerItems(categoriasResponse)));
+        setMetodosDepreciacion(normalizarOpciones(extraerItems(metodosResponse)));
+        setEstadosActivo(normalizarOpciones(extraerItems(estadosResponse)));
+        setAulas(normalizarAulas(extraerItems(aulasResponse)));
+      } catch (error) {
+        console.error('No fue posible cargar los catálogos del formulario de activos:', error);
+      } finally {
+        setCargandoCatalogos(false);
+      }
+    };
+
+    cargarCatalogos();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -83,22 +210,51 @@ const VerActivo = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (modo === 'crear') {
-      console.log('Crear activo:', formData);
-      if (formData.multiparte) {
-        console.log('Partes:', partes);
+
+    const payload = {
+      nombre: formData.nombre,
+      descripcion: formData.descripcion,
+      modelo: formData.modelo,
+      numero_serie: formData.numero_serie,
+      fecha_compra: formData.fecha_compra,
+      precio_compra: formData.precio_compra === '' ? null : Number(formData.precio_compra),
+      valor_residual: formData.valor_residual === '' ? null : Number(formData.valor_residual),
+      vida_util_anios: formData.vida_util_anios === '' ? null : Number(formData.vida_util_anios),
+      id_metodo_depreciacion: formData.id_metodo_depreciacion === '' ? null : Number(formData.id_metodo_depreciacion),
+      id_categoria: formData.id_categoria,
+      id_estado_activo: formData.id_estado_activo,
+      id_aula: formData.id_aula
+    };
+
+    try {
+      setGuardando(true);
+
+      if (modo === 'crear') {
+        await api.post('assets', payload);
+        navigate(-1);
+        return;
       }
-    } else if (modo === 'editar') {
-      console.log('Actualizar activo:', formData);
-      if (formData.multiparte) {
-        console.log('Partes:', partes);
+
+      if (modo === 'editar') {
+        console.log('Actualizar activo:', payload);
+        if (formData.multiparte) {
+          console.log('Partes:', partes);
+        }
+        navigate(-1);
+        return;
       }
+
+      if (modo === 'eliminar') {
+        return;
+      }
+    } catch (error) {
+      console.error('Error al guardar el activo:', error);
+      window.alert('No se pudo guardar el activo. Intenta nuevamente.');
+    } finally {
+      setGuardando(false);
     }
-    
-    navigate(-1);
   };
 
   const handleEliminar = () => {
@@ -191,8 +347,8 @@ const VerActivo = () => {
                 </label>
                 <input
                   type="text"
-                  name="nombre_activo"
-                  value={formData.nombre_activo}
+                  name="nombre"
+                  value={formData.nombre}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   className={`w-full px-4 py-2 rounded-lg border ${
@@ -208,12 +364,12 @@ const VerActivo = () => {
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
                 }`}>
-                  Marca
+                  Número de Serie
                 </label>
                 <input
                   type="text"
-                  name="marca_activo"
-                  value={formData.marca_activo}
+                  name="numero_serie"
+                  value={formData.numero_serie}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   className={`w-full px-4 py-2 rounded-lg border ${
@@ -221,6 +377,7 @@ const VerActivo = () => {
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 />
               </div>
 
@@ -232,8 +389,8 @@ const VerActivo = () => {
                 </label>
                 <input
                   type="text"
-                  name="Modelo_activo"
-                  value={formData.Modelo_activo}
+                  name="modelo"
+                  value={formData.modelo}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   className={`w-full px-4 py-2 rounded-lg border ${
@@ -241,6 +398,7 @@ const VerActivo = () => {
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 />
               </div>
 
@@ -252,8 +410,8 @@ const VerActivo = () => {
                 </label>
                 <input
                   type="date"
-                  name="fecha_compra_activo"
-                  value={formData.fecha_compra_activo}
+                  name="fecha_compra"
+                  value={formData.fecha_compra}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   className={`w-full px-4 py-2 rounded-lg border ${
@@ -261,6 +419,7 @@ const VerActivo = () => {
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 />
               </div>
 
@@ -268,7 +427,7 @@ const VerActivo = () => {
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
                 }`}>
-                  Precio Original
+                  Precio de Compra
                 </label>
                 <div className="relative">
                   <span className={`absolute left-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
@@ -277,8 +436,8 @@ const VerActivo = () => {
                   <input
                     type="number"
                     step="0.01"
-                    name="precio_original"
-                    value={formData.precio_original}
+                    name="precio_compra"
+                    value={formData.precio_compra}
                     onChange={handleChange}
                     disabled={isReadOnly}
                     className={`w-full pl-8 pr-16 py-2 rounded-lg border ${
@@ -286,9 +445,10 @@ const VerActivo = () => {
                         ? 'bg-slate-700 border-slate-600 text-white' 
                         : 'bg-white border-gray-300 text-slate-900'
                     } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    required={!isReadOnly}
                   />
                   <span className={`absolute right-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
-                    USD
+                    MXN
                   </span>
                 </div>
               </div>
@@ -315,9 +475,10 @@ const VerActivo = () => {
                         ? 'bg-slate-700 border-slate-600 text-white' 
                         : 'bg-white border-gray-300 text-slate-900'
                     } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    required={!isReadOnly}
                   />
                   <span className={`absolute right-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
-                    USD
+                    MXN
                   </span>
                 </div>
               </div>
@@ -330,8 +491,8 @@ const VerActivo = () => {
                 </label>
                 <input
                   type="number"
-                  name="vida_util"
-                  value={formData.vida_util}
+                  name="vida_util_anios"
+                  value={formData.vida_util_anios}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   className={`w-full px-4 py-2 rounded-lg border ${
@@ -339,6 +500,7 @@ const VerActivo = () => {
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 />
               </div>
 
@@ -349,10 +511,10 @@ const VerActivo = () => {
                   Categoría
                 </label>
                 <select
-                  name="FK_id_categoria"
-                  value={formData.FK_id_categoria}
+                  name="id_categoria"
+                  value={formData.id_categoria}
                   onChange={handleChange}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || cargandoCatalogos}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDark 
                       ? 'bg-slate-700 border-slate-600 text-white' 
@@ -361,11 +523,11 @@ const VerActivo = () => {
                   required={!isReadOnly}
                 >
                   <option value="">Seleccionar categoría</option>
-                  <option value="1">Computadoras & Laptops</option>
-                  <option value="2">Muebles</option>
-                  <option value="3">Vehículos</option>
-                  <option value="4">Equipos</option>
-                  <option value="5">Herramientas</option>
+                  {categorias.map((categoria) => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -373,23 +535,26 @@ const VerActivo = () => {
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
                 }`}>
-                  Responsable
+                  Método de Depreciación
                 </label>
                 <select
-                  name="FK_id_responsable_activo"
-                  value={formData.FK_id_responsable_activo}
+                  name="id_metodo_depreciacion"
+                  value={formData.id_metodo_depreciacion}
                   onChange={handleChange}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || cargandoCatalogos}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDark 
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 >
-                  <option value="">Seleccionar responsable</option>
-                  <option value="1">Usuario 1</option>
-                  <option value="2">Usuario 2</option>
-                  <option value="3">Usuario 3</option>
+                  <option value="">Seleccionar método</option>
+                  {metodosDepreciacion.map((metodo) => (
+                    <option key={metodo.id} value={metodo.id}>
+                      {metodo.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -400,21 +565,23 @@ const VerActivo = () => {
                   Estado
                 </label>
                 <select
-                  name="FK_id_estado"
-                  value={formData.FK_id_estado}
+                  name="id_estado_activo"
+                  value={formData.id_estado_activo}
                   onChange={handleChange}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || cargandoCatalogos}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDark 
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    required={!isReadOnly}
                 >
                   <option value="">Seleccionar estado</option>
-                  <option value="1">Activo</option>
-                  <option value="2">En mantenimiento</option>
-                  <option value="3">Inactivo</option>
-                  <option value="4">Dado de baja</option>
+                  {estadosActivo.map((estado) => (
+                    <option key={estado.id} value={estado.id}>
+                      {estado.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -425,21 +592,23 @@ const VerActivo = () => {
                   Aula en que se ubica
                 </label>
                 <select
-                  name="FK_id_aula"
-                  value={formData.FK_id_aula}
+                  name="id_aula"
+                  value={formData.id_aula}
                   onChange={handleChange}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || cargandoCatalogos}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDark 
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
                 >
                   <option value="">Seleccionar aula</option>
-                  <option value="1">Aula 101</option>
-                  <option value="2">Aula 102</option>
-                  <option value="3">Oficina Principal</option>
-                  <option value="4">Sala de reuniones</option>
+                  {aulas.map((aula) => (
+                    <option key={aula.id} value={aula.id}>
+                      {aula.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -587,8 +756,8 @@ const VerActivo = () => {
                   Descripción
                 </label>
                 <textarea
-                  name="descripcion_activo"
-                  value={formData.descripcion_activo}
+                  name="descripcion"
+                  value={formData.descripcion}
                   onChange={handleChange}
                   disabled={isReadOnly}
                   rows="3"
@@ -597,6 +766,7 @@ const VerActivo = () => {
                       ? 'bg-slate-700 border-slate-600 text-white' 
                       : 'bg-white border-gray-300 text-slate-900'
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500 resize-none`}
+                  required={!isReadOnly}
                 />
               </div>
             </div>
@@ -617,14 +787,15 @@ const VerActivo = () => {
               <button
                 type={modo === 'eliminar' ? 'button' : 'submit'}
                 onClick={modo === 'eliminar' ? handleEliminar : undefined}
+                disabled={guardando}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium ${
                   modo === 'eliminar'
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
+                } ${guardando ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {getIconoBoton()}
-                {getTextBoton()}
+                {guardando ? 'Guardando...' : getTextBoton()}
               </button>
             </div>
           </div>
