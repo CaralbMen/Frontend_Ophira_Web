@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { ArrowLeft, Save, Trash2, Plus } from 'lucide-react';
+
+import {api} from '../../services/api';
 
 const VerUsuario = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-  
+  const [roles, setRoles] = useState([]);
+  const [puestos, setPuestos] = useState([]);
   const modo = location.state?.modo || (id ? 'editar' : 'crear');
   const usuarioExistente = location.state?.usuario;
 
@@ -24,6 +27,23 @@ const VerUsuario = () => {
     FK_id_puesto: '',
     activo_usuario: true
   });
+  useEffect(()=>{
+   const cargarRolesYPuestos= async()=>{
+      try{
+        const rolesData = await api.get('roles');
+        setRoles(rolesData);
+        console.log('Roles cargados:', rolesData);
+        const puestosData = await api.get('puestos');
+        setPuestos(puestosData);
+        console.log('Puestos cargados:', puestosData);
+      } catch (error) {
+        console.error('Error al cargar roles y puestos:', error);
+
+      }
+    }
+    cargarRolesYPuestos();
+  },[]);
+
 
   useEffect(() => {
     if (usuarioExistente) {
@@ -269,27 +289,6 @@ const VerUsuario = () => {
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
                 />
               </div>
-
-              {/* <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-slate-300' : 'text-slate-700'
-                }`}>
-                  Fecha de Registro
-                </label>
-                <input
-                  type="date"
-                  name="fecha_registro_usuario"
-                  value={formData.fecha_registro_usuario}
-                  onChange={handleChange}
-                  disabled={isReadOnly}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDark 
-                      ? 'bg-slate-700 border-slate-600 text-white' 
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-              </div> */}
-
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
@@ -309,10 +308,9 @@ const VerUsuario = () => {
                   required={!isReadOnly}
                 >
                   <option value="">Seleccionar rol</option>
-                  <option value="1">Administrador</option>
-                  <option value="2">Auditor</option>
-                  <option value="3">Usuario</option>
-                  <option value="4">Supervisor</option>
+                  {roles.map(rol => (
+                    <option key={rol.id_rol} value={rol.id_rol}>{rol.nombre}</option>
+                  ))}
                 </select>
               </div>
 
@@ -335,11 +333,9 @@ const VerUsuario = () => {
                   required={!isReadOnly}
                 >
                   <option value="">Seleccionar puesto</option>
-                  <option value="1">Director</option>
-                  <option value="2">Coordinador</option>
-                  <option value="3">Técnico</option>
-                  <option value="4">Asistente</option>
-                  <option value="5">Consultor</option>
+                  {puestos.map(puesto => (
+                    <option key={puesto.id_puesto} value={puesto.id_puesto}>{puesto.nombre}</option>
+                  ))}
                 </select>
               </div>
 

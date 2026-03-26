@@ -270,7 +270,7 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
                     value={selectedEdificio}
                     onChange={(event) => handleSelectEdificio(event.target.value)}
@@ -313,7 +313,7 @@ const Dashboard = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <div className="flex items-center gap-2">
                   <button
