@@ -134,6 +134,9 @@ const VerActivo = () => {
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
+  // const enviarDatos= async()=>{
+  //   console.log('Datos a enviar:', formData);
+  // }
   useEffect(() => {
     if (activoExistente) {
       setFormData({
@@ -220,6 +223,7 @@ const VerActivo = () => {
       numero_serie: formData.numero_serie,
       fecha_compra: formData.fecha_compra,
       precio_compra: formData.precio_compra === '' ? null : Number(formData.precio_compra),
+      valor_actual: formData.precio_actual === '' ? null : Number(formData.precio_actual),
       valor_residual: formData.valor_residual === '' ? null : Number(formData.valor_residual),
       vida_util_anios: formData.vida_util_anios === '' ? null : Number(formData.vida_util_anios),
       id_metodo_depreciacion: formData.id_metodo_depreciacion === '' ? null : Number(formData.id_metodo_depreciacion),
@@ -227,7 +231,7 @@ const VerActivo = () => {
       id_estado_activo: formData.id_estado_activo,
       id_aula: formData.id_aula
     };
-
+    console.log('Payload a enviar:', payload);
     try {
       setGuardando(true);
 
@@ -452,6 +456,37 @@ const VerActivo = () => {
                   </span>
                 </div>
               </div>
+
+               <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}>
+                  Valor Actual
+                </label>
+                <div className="relative">
+                  <span className={`absolute left-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="precio_actual"
+                    value={formData.precio_actual}
+                    onChange={handleChange}
+                    disabled={isReadOnly}
+                    className={`w-full pl-8 pr-16 py-2 rounded-lg border ${
+                      isDark 
+                        ? 'bg-slate-700 border-slate-600 text-white' 
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    required={!isReadOnly}
+                  />
+                  <span className={`absolute right-3 top-2.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                    MXN
+                  </span>
+                </div>
+              </div>
+
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -718,12 +753,12 @@ const VerActivo = () => {
                                     : 'bg-white border-gray-300 text-slate-900'
                                 } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
                               >
-                                <option value="">Seleccionar ubicación</option>
-                                <option value="1">Aula 101</option>
-                                <option value="2">Aula 102</option>
-                                <option value="3">Oficina Principal</option>
-                                <option value="4">Sala de reuniones</option>
-                                <option value="5">Almacén</option>
+                                <option value="">Seleccionar aula</option>
+                                {aulas.map((aula) => (
+                                  <option key={aula.id} value={aula.id}>
+                                    {aula.nombre}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                           </div>

@@ -1,128 +1,144 @@
 import { Search, Plus, Download, Edit, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import {api} from '../services/api';
+import { useEffect, useState } from 'react';
 const Activos = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [activos, setActivos]= useState([]);
   // Datos de ejemplo
-  const activos = [
-    {
-      id: '10024',
-      nombre_activo: 'Dell Latitude 5520',
-      marca_activo: 'Dell',
-      Modelo_activo: 'Latitude 5520',
-      descripcion_activo: 'Laptop para desarrollo',
-      precio_original: '1200.00',
-      valor_residual: '800.00',
-      vida_util: '5',
-      fecha_compra_activo: '2023-10-24',
-      FK_id_responsable_activo: '1',
-      FK_id_categoria: '1',
-      FK_id_estado: '1',
-      FK_id_aula: '1',
-      multiparte: false,
-      nombre: 'Dell Latitude 5520',
-      responsable: 'Carlos Mendoza',
-      categoria: 'Electronicos',
-      ubicacion: 'Aula C107',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Oct 24, 2023',
-    },
-    {
-      id: '10025',
-      nombre_activo: 'Herman Miller Aeron',
-      marca_activo: 'Herman Miller',
-      Modelo_activo: 'Aeron',
-      descripcion_activo: 'Silla ergonómica de oficina',
-      precio_original: '1500.00',
-      valor_residual: '1200.00',
-      vida_util: '10',
-      fecha_compra_activo: '2023-10-22',
-      FK_id_responsable_activo: '2',
-      FK_id_categoria: '2',
-      FK_id_estado: '1',
-      FK_id_aula: '2',
-      multiparte: false,
-      nombre: 'Herman Miller Aeron',
-      responsable: 'Daniyel Paulín',
-      categoria: 'Muebles',
-      ubicacion: 'Laboratorio B1',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Oct 22, 2023',
-    },
-    {
-      id: '10031',
-      nombre_activo: 'Industrial Printer HP',
-      marca_activo: 'HP',
-      Modelo_activo: 'LaserJet Enterprise',
-      descripcion_activo: 'Impresora industrial de alta capacidad',
-      precio_original: '3500.00',
-      valor_residual: '2800.00',
-      vida_util: '7',
-      fecha_compra_activo: '2023-09-15',
-      FK_id_responsable_activo: '1',
-      FK_id_categoria: '1',
-      FK_id_estado: '2',
-      FK_id_aula: '3',
-      multiparte: false,
-      nombre: 'Industrial Printer HP',
-      responsable: 'Carlos Mendoza',
-      categoria: 'Electronicos',
-      ubicacion: 'Audiovisual A',
-      estado: 'Mantenimiento',
-      estadoColor: 'yellow',
-      fecha: 'Sep 15, 2023',
-    },
-    {
-      id: '10042',
-      nombre_activo: 'Forklift Toyota 8F',
-      marca_activo: 'Toyota',
-      Modelo_activo: '8FD25',
-      descripcion_activo: 'Montacargas de 2.5 toneladas',
-      precio_original: '25000.00',
-      valor_residual: '20000.00',
-      vida_util: '15',
-      fecha_compra_activo: '2023-01-10',
-      FK_id_responsable_activo: '1',
-      FK_id_categoria: '3',
-      FK_id_estado: '1',
-      FK_id_aula: '4',
-      multiparte: false,
-      nombre: 'Forklift Toyota 8F',
-      responsable: 'Carlos Mendoza',
-      categoria: 'Vehiculos',
-      ubicacion: 'Audiovisual LT1',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Jan 10, 2023',
-    },
-    {
-      id: '10050',
-      nombre_activo: 'Projector Epson 3000',
-      marca_activo: 'Epson',
-      Modelo_activo: 'PowerLite 3000',
-      descripcion_activo: 'Proyector multimedia de alta resolución',
-      precio_original: '1800.00',
-      valor_residual: '200.00',
-      vida_util: '5',
-      fecha_compra_activo: '2022-11-05',
-      FK_id_responsable_activo: '1',
-      FK_id_categoria: '1',
-      FK_id_estado: '4',
-      FK_id_aula: '1',
-      multiparte: false,
-      nombre: 'Projector Epson 3000',
-      responsable: 'Carlos Mendoza',
-      categoria: 'Electronicos',
-      ubicacion: 'Oficina 5, piso 2, edificio A',
-      estado: 'Retirado',
-      estadoColor: 'red',
-      fecha: 'Nov 05, 2022',
-    },
-  ];
+  // const activos = [
+  //   {
+  //     id: '10024',
+  //     nombre_activo: 'Dell Latitude 5520',
+  //     marca_activo: 'Dell',
+  //     Modelo_activo: 'Latitude 5520',
+  //     descripcion_activo: 'Laptop para desarrollo',
+  //     precio_original: '1200.00',
+  //     valor_residual: '800.00',
+  //     vida_util: '5',
+  //     fecha_compra_activo: '2023-10-24',
+  //     FK_id_responsable_activo: '1',
+  //     FK_id_categoria: '1',
+  //     FK_id_estado: '1',
+  //     FK_id_aula: '1',
+  //     multiparte: false,
+  //     nombre: 'Dell Latitude 5520',
+  //     responsable: 'Carlos Mendoza',
+  //     categoria: 'Electronicos',
+  //     ubicacion: 'Aula C107',
+  //     estado: 'Activo',
+  //     estadoColor: 'green',
+  //     fecha: 'Oct 24, 2023',
+  //   },
+  //   {
+  //     id: '10025',
+  //     nombre_activo: 'Herman Miller Aeron',
+  //     marca_activo: 'Herman Miller',
+  //     Modelo_activo: 'Aeron',
+  //     descripcion_activo: 'Silla ergonómica de oficina',
+  //     precio_original: '1500.00',
+  //     valor_residual: '1200.00',
+  //     vida_util: '10',
+  //     fecha_compra_activo: '2023-10-22',
+  //     FK_id_responsable_activo: '2',
+  //     FK_id_categoria: '2',
+  //     FK_id_estado: '1',
+  //     FK_id_aula: '2',
+  //     multiparte: false,
+  //     nombre: 'Herman Miller Aeron',
+  //     responsable: 'Daniyel Paulín',
+  //     categoria: 'Muebles',
+  //     ubicacion: 'Laboratorio B1',
+  //     estado: 'Activo',
+  //     estadoColor: 'green',
+  //     fecha: 'Oct 22, 2023',
+  //   },
+  //   {
+  //     id: '10031',
+  //     nombre_activo: 'Industrial Printer HP',
+  //     marca_activo: 'HP',
+  //     Modelo_activo: 'LaserJet Enterprise',
+  //     descripcion_activo: 'Impresora industrial de alta capacidad',
+  //     precio_original: '3500.00',
+  //     valor_residual: '2800.00',
+  //     vida_util: '7',
+  //     fecha_compra_activo: '2023-09-15',
+  //     FK_id_responsable_activo: '1',
+  //     FK_id_categoria: '1',
+  //     FK_id_estado: '2',
+  //     FK_id_aula: '3',
+  //     multiparte: false,
+  //     nombre: 'Industrial Printer HP',
+  //     responsable: 'Carlos Mendoza',
+  //     categoria: 'Electronicos',
+  //     ubicacion: 'Audiovisual A',
+  //     estado: 'Mantenimiento',
+  //     estadoColor: 'yellow',
+  //     fecha: 'Sep 15, 2023',
+  //   },
+  //   {
+  //     id: '10042',
+  //     nombre_activo: 'Forklift Toyota 8F',
+  //     marca_activo: 'Toyota',
+  //     Modelo_activo: '8FD25',
+  //     descripcion_activo: 'Montacargas de 2.5 toneladas',
+  //     precio_original: '25000.00',
+  //     valor_residual: '20000.00',
+  //     vida_util: '15',
+  //     fecha_compra_activo: '2023-01-10',
+  //     FK_id_responsable_activo: '1',
+  //     FK_id_categoria: '3',
+  //     FK_id_estado: '1',
+  //     FK_id_aula: '4',
+  //     multiparte: false,
+  //     nombre: 'Forklift Toyota 8F',
+  //     responsable: 'Carlos Mendoza',
+  //     categoria: 'Vehiculos',
+  //     ubicacion: 'Audiovisual LT1',
+  //     estado: 'Activo',
+  //     estadoColor: 'green',
+  //     fecha: 'Jan 10, 2023',
+  //   },
+  //   {
+  //     id: '10050',
+  //     nombre_activo: 'Projector Epson 3000',
+  //     marca_activo: 'Epson',
+  //     Modelo_activo: 'PowerLite 3000',
+  //     descripcion_activo: 'Proyector multimedia de alta resolución',
+  //     precio_original: '1800.00',
+  //     valor_residual: '200.00',
+  //     vida_util: '5',
+  //     fecha_compra_activo: '2022-11-05',
+  //     FK_id_responsable_activo: '1',
+  //     FK_id_categoria: '1',
+  //     FK_id_estado: '4',
+  //     FK_id_aula: '1',
+  //     multiparte: false,
+  //     nombre: 'Projector Epson 3000',
+  //     responsable: 'Carlos Mendoza',
+  //     categoria: 'Electronicos',
+  //     ubicacion: 'Oficina 5, piso 2, edificio A',
+  //     estado: 'Retirado',
+  //     estadoColor: 'red',
+  //     fecha: 'Nov 05, 2022',
+  //   },
+  // ];
+  
 
+  useEffect(()=>{
+    const obtenerActivos= async()=>{
+      try{
+        const response= await api.get('assets/activos');
+        setActivos(response);
+        console.log('Activos obtenidos:', response);
+      }catch(e){
+        console.error('Error al obtener activos:', e);
+      }
+    }
+    obtenerActivos();
+  }, []);
   const getEstadoBadgeColor = (estado) => {
     switch (estado) {
       case 'Activo':
@@ -242,9 +258,9 @@ const Activos = () => {
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {activos.map((activo) => (
-                <tr key={activo.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                <tr key={activo.id_activo} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-4 py-3">
-                    <span className={`font-semibold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.id}</span>
+                    <span className={`font-semibold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.id_activo}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div>
@@ -253,7 +269,7 @@ const Activos = () => {
                     </div>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.categoria}</td>
-                  <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.ubicacion}</td>
+                  <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.aula}</td>
                   <td className="px-6 py-4">
                     <span className={`text-xs font-semibold ${getEstadoBadgeColor(activo.estado)}`}>
                       {activo.estado}
