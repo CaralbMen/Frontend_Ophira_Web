@@ -3,6 +3,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {api} from '../services/api';
 import { useEffect, useState } from 'react';
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return '';
+  const date = new Date(fecha);
+  return date.toISOString().split('T')[0];
+};
+
 const Activos = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -275,7 +282,7 @@ const Activos = () => {
                       {activo.estado}
                     </span>
                   </td>
-                  <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.fecha}</td>
+                  <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{formatearFecha(activo.fecha_registro)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button className={`p-2 rounded-lg transition ${

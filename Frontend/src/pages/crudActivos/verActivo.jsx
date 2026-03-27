@@ -13,21 +13,28 @@ const normalizarOpciones = (items) => {
     .map((item) => {
       const idRaw =
         item?.id ??
+        item?.id_usuario ??
         item?.id_categoria ??
         item?.id_metodo_depreciacion ??
         item?.id_estado_activo ??
         item?.FK_id_categoria ??
-        item?.FK_id_estado;
+        item?.FK_id_estado ??
+        item?.FK_id_usuario;
 
       const nombreRaw =
         item?.nombre ??
+        item?.nombre_usuario ??
+        item?.nombre_completo ??
         item?.descripcion ??
         item?.nombre_categoria ??
         item?.categoria ??
         item?.nombre_metodo ??
         item?.metodo ??
         item?.nombre_estado ??
-        item?.estado;
+        item?.estado ??
+        [item?.nombre_usuario, item?.apaterno_usuario, item?.amaterno_usuario]
+          .filter(Boolean)
+          .join(' ');
 
       if (idRaw === undefined || idRaw === null || !nombreRaw) {
         return null;
@@ -46,12 +53,28 @@ const extraerItems = (response) => {
     return response;
   }
 
+  if (Array.isArray(response?.data?.usuarios)) {
+    return response.data.usuarios;
+  }
+
   if (Array.isArray(response?.data?.aulas)) {
     return response.data.aulas;
   }
 
+  if (Array.isArray(response?.usuarios)) {
+    return response.usuarios;
+  }
+
   if (Array.isArray(response?.aulas)) {
     return response.aulas;
+  }
+
+  if (Array.isArray(response?.data?.users)) {
+    return response.data.users;
+  }
+
+  if (Array.isArray(response?.users)) {
+    return response.users;
   }
 
   if (Array.isArray(response?.data)) {
@@ -114,23 +137,26 @@ const VerActivo = () => {
     numero_serie: '',
     fecha_compra: '',
     precio_compra: '',
+    valor_actual: '',
     valor_residual: '',
     vida_util_anios: '',
     id_metodo_depreciacion: '1',
     id_categoria: '',
     id_estado_activo: '',
     id_aula: '',
+    id_responsable: '',
     multiparte: false
   });
 
   const [partes, setPartes] = useState([
-    { id: 1, nombre_parte: '', FK_id_aula_parte: '' }
+    { id: 1, descripcion: '', id_aula: '' }
   ]);
 
   const [categorias, setCategorias] = useState([]);
   const [metodosDepreciacion, setMetodosDepreciacion] = useState([]);
   const [estadosActivo, setEstadosActivo] = useState([]);
   const [aulas, setAulas] = useState([]);
+  const [encargados, setEncargados] = useState([]);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
@@ -146,17 +172,25 @@ const VerActivo = () => {
         numero_serie: activoExistente.numero_serie || '',
         fecha_compra: activoExistente.fecha_compra || activoExistente.fecha_compra_activo || '',
         precio_compra: activoExistente.precio_compra || activoExistente.precio_original || '',
+        valor_actual: activoExistente.valor_actual || activoExistente.precio_actual || '',
         valor_residual: activoExistente.valor_residual || '',
         vida_util_anios: activoExistente.vida_util_anios || activoExistente.vida_util || '',
         id_metodo_depreciacion: String(activoExistente.id_metodo_depreciacion || '1'),
         id_categoria: String(activoExistente.id_categoria || activoExistente.FK_id_categoria || ''),
         id_estado_activo: String(activoExistente.id_estado_activo || activoExistente.FK_id_estado || ''),
         id_aula: activoExistente.id_aula || activoExistente.FK_id_aula || '',
+        id_responsable: String(activoExistente.id_responsable || activoExistente.FK_id_responsable || ''),
         multiparte: activoExistente.multiparte || false
       });
       
       if (activoExistente.partes && activoExistente.partes.length > 0) {
-        setPartes(activoExistente.partes);
+        setPartes(
+          activoExistente.partes.map((parte, index) => ({
+            id: parte.id ?? index + 1,
+            descripcion: parte.descripcion ?? parte.nombre_parte ?? '',
+            id_aula: String(parte.id_aula ?? parte.FK_id_aula_parte ?? '')
+          }))
+        );
       }
     } else if (id && modo !== 'crear') {
       // fetchActivo(id).then(data => setFormData(data));
@@ -167,17 +201,19 @@ const VerActivo = () => {
     const cargarCatalogos = async () => {
       setCargandoCatalogos(true);
       try {
-        const [categoriasResponse, metodosResponse, estadosResponse, aulasResponse] = await Promise.all([
+        const [categoriasResponse, metodosResponse, estadosResponse, aulasResponse, encargadosResponse] = await Promise.all([
           api.get('categorias'),
           api.get('metodos-depreciacion'),
           api.get('estados-activo'),
-          api.get('ubicacion/aulas')
+          api.get('ubicacion/aulas'),
+          api.get('usuarios')
         ]);
 
         setCategorias(normalizarOpciones(extraerItems(categoriasResponse)));
         setMetodosDepreciacion(normalizarOpciones(extraerItems(metodosResponse)));
         setEstadosActivo(normalizarOpciones(extraerItems(estadosResponse)));
         setAulas(normalizarAulas(extraerItems(aulasResponse)));
+        setEncargados(encargadosResponse.data.rows);
       } catch (error) {
         console.error('No fue posible cargar los catálogos del formulario de activos:', error);
       } finally {
@@ -204,7 +240,7 @@ const VerActivo = () => {
 
   const agregarParte = () => {
     const nuevoId = partes.length > 0 ? Math.max(...partes.map(p => p.id)) + 1 : 1;
-    setPartes(prev => [...prev, { id: nuevoId, nombre_parte: '', FK_id_aula_parte: '' }]);
+    setPartes(prev => [...prev, { id: nuevoId, descripcion: '', id_aula: '' }]);
   };
 
   const eliminarParte = (id) => {
@@ -216,6 +252,15 @@ const VerActivo = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const partesPayload = formData.multiparte
+      ? partes
+          .filter((parte) => String(parte.id_aula || '').trim() !== '' && String(parte.descripcion || '').trim() !== '')
+          .map((parte) => ({
+            id_aula: String(parte.id_aula),
+            descripcion: String(parte.descripcion || '').trim()
+          }))
+      : [];
+
     const payload = {
       nombre: formData.nombre,
       descripcion: formData.descripcion,
@@ -223,14 +268,20 @@ const VerActivo = () => {
       numero_serie: formData.numero_serie,
       fecha_compra: formData.fecha_compra,
       precio_compra: formData.precio_compra === '' ? null : Number(formData.precio_compra),
-      valor_actual: formData.precio_actual === '' ? null : Number(formData.precio_actual),
+      valor_actual: formData.valor_actual === '' ? null : Number(formData.valor_actual),
       valor_residual: formData.valor_residual === '' ? null : Number(formData.valor_residual),
       vida_util_anios: formData.vida_util_anios === '' ? null : Number(formData.vida_util_anios),
       id_metodo_depreciacion: formData.id_metodo_depreciacion === '' ? null : Number(formData.id_metodo_depreciacion),
-      id_categoria: formData.id_categoria,
-      id_estado_activo: formData.id_estado_activo,
-      id_aula: formData.id_aula
+      id_categoria: formData.id_categoria === '' ? null : Number(formData.id_categoria),
+      id_estado_activo: formData.id_estado_activo === '' ? null : Number(formData.id_estado_activo),
+      id_aula: formData.id_aula === '' ? null : String(formData.id_aula),
+      id_responsable: formData.id_responsable === '' ? null : Number(formData.id_responsable),
+      multiparte: formData.multiparte
     };
+
+    if (partesPayload.length > 0) {
+      payload.partes = partesPayload;
+    }
     console.log('Payload a enviar:', payload);
     try {
       setGuardando(true);
@@ -242,9 +293,9 @@ const VerActivo = () => {
       }
 
       if (modo === 'editar') {
-        console.log('Actualizar activo:', payload);
+        await api.put(`assets/${id}`, payload);
         if (formData.multiparte) {
-          console.log('Partes:', partes);
+          console.log('Partes a actualizar:', partes);
         }
         navigate(-1);
         return;
@@ -261,10 +312,18 @@ const VerActivo = () => {
     }
   };
 
-  const handleEliminar = () => {
+  const handleEliminar = async () => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este activo?')) {
-      console.log('Eliminar activo con id:', id);
-      navigate(-1);
+      try {
+        setGuardando(true);
+        await api.delete(`assets/${id}`);
+        navigate(-1);
+      } catch (error) {
+        console.error('Error al eliminar el activo:', error);
+        window.alert('No se pudo eliminar el activo. Intenta nuevamente.');
+      } finally {
+        setGuardando(false);
+      }
     }
   };
 
@@ -470,8 +529,8 @@ const VerActivo = () => {
                   <input
                     type="number"
                     step="0.01"
-                    name="precio_actual"
-                    value={formData.precio_actual}
+                    name="valor_actual"
+                    value={formData.valor_actual}
                     onChange={handleChange}
                     disabled={isReadOnly}
                     className={`w-full pl-8 pr-16 py-2 rounded-lg border ${
@@ -646,7 +705,32 @@ const VerActivo = () => {
                   ))}
                 </select>
               </div>
-
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}>
+                  Responsable
+                </label>
+                <select
+                  name="id_responsable"
+                  value={formData.id_responsable}
+                  onChange={handleChange}
+                  disabled={isReadOnly || cargandoCatalogos}
+                  className={`w-full px-4 py-2 rounded-lg border ${
+                    isDark 
+                      ? 'bg-slate-700 border-slate-600 text-white' 
+                      : 'bg-white border-gray-300 text-slate-900'
+                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={!isReadOnly}
+                >
+                  <option value="">Seleccionar responsable</option>
+                  {encargados.map((encargado) => (
+                    <option key={encargado.id_usuario} value={encargado.id_usuario}>
+                      {encargado.nombre_usuario} - {encargado.puesto} de {encargado.area}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-3 md:col-span-2">
                 <input
                   type="checkbox"
@@ -722,12 +806,12 @@ const VerActivo = () => {
                               <label className={`block text-sm font-medium mb-1 ${
                                 isDark ? 'text-slate-300' : 'text-slate-700'
                               }`}>
-                                Nombre de la Parte
+                                Descripción de la Parte
                               </label>
                               <input
                                 type="text"
-                                value={parte.nombre_parte}
-                                onChange={(e) => handleParteChange(parte.id, 'nombre_parte', e.target.value)}
+                                value={parte.descripcion}
+                                onChange={(e) => handleParteChange(parte.id, 'descripcion', e.target.value)}
                                 disabled={isReadOnly}
                                 className={`w-full px-3 py-2 rounded-lg border ${
                                   isDark 
@@ -741,11 +825,11 @@ const VerActivo = () => {
                               <label className={`block text-sm font-medium mb-1 ${
                                 isDark ? 'text-slate-300' : 'text-slate-700'
                               }`}>
-                                Ubicación/Aula
+                                Ubicación
                               </label>
                               <select
-                                value={parte.FK_id_aula_parte}
-                                onChange={(e) => handleParteChange(parte.id, 'FK_id_aula_parte', e.target.value)}
+                                value={parte.id_aula}
+                                onChange={(e) => handleParteChange(parte.id, 'id_aula', e.target.value)}
                                 disabled={isReadOnly}
                                 className={`w-full px-3 py-2 rounded-lg border ${
                                   isDark 
