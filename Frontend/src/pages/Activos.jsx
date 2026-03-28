@@ -265,7 +265,7 @@ const Activos = () => {
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {activos.map((activo) => (
-                <tr key={activo.id_activo} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                <tr key={activo.id_activo ?? activo.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-4 py-3">
                     <span className={`font-semibold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.id_activo}</span>
                   </td>
@@ -273,6 +273,15 @@ const Activos = () => {
                     <div>
                       <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.nombre}</p>
                       <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable: {activo.responsable}</p>
+                      {Array.isArray(activo.partes) && activo.partes.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {activo.partes.map((parte) => (
+                            <p key={parte.id_parte} className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                              Parte {parte.numero_parte}: {parte.descripcion} | Aula: {parte.id_aula}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{activo.categoria}</td>
@@ -290,7 +299,7 @@ const Activos = () => {
                           ? 'text-slate-500 hover:text-blue-400 hover:bg-blue-900/20'
                           : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
                       }`}
-                        onClick={()=>navigate(`/activos/editar/${activo.id}`,{
+                        onClick={()=>navigate(`/activos/editar/${activo.id_activo ?? activo.id}`,{
                           state:{
                             modo: 'editar',
                             activo: activo
@@ -304,7 +313,7 @@ const Activos = () => {
                           ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
                           : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
                       }`}
-                        onClick={()=>navigate(`/activos/eliminar/${activo.id}`,{
+                        onClick={()=>navigate(`/activos/eliminar/${activo.id_activo ?? activo.id}`,{
                           state:{
                             modo: 'eliminar',
                             activo: activo
