@@ -1,92 +1,157 @@
-import { DownloadCloud, FileText, Download, TrendingUp, CheckCircle, AlertCircle, DollarSign, Edit, MoreVertical } from 'lucide-react';
+import { FileText, Download, TrendingUp, CheckCircle, AlertCircle, DollarSign, MoreVertical } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
+
+const toNumber = (value) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const moneyMx = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  maximumFractionDigits: 2
+});
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'Sin fecha';
+  const date = new Date(fecha);
+  return Number.isNaN(date.getTime()) ? 'Sin fecha' : date.toLocaleDateString('es-MX');
+};
 
 const Reportes = () => {
   const { isDark } = useTheme();
   const [dateRange, setDateRange] = useState('30 dias');
+  const [reporteData, setReporteData] = useState({
+    total_activos: '0',
+    bienes_activos: '0',
+    activos_en_mantenimiento: '0',
+    aniadidos_recientemente: '0',
+    valor_total: '0',
+    enero: '0',
+    febrero: '0',
+    marzo: '0',
+    abril: '0',
+    mayo: '0',
+    junio: '0',
+    julio: '0',
+    agosto: '0',
+    septiembre: '0',
+    octubre: '0',
+    noviembre: '0',
+    diciembre: '0'
+  });
+  const [activos, setActivos] = useState([]);
+
+  useEffect(() => {
+    const cargarDatosReporte = async () => {
+      try {
+        const [reporteResponse, activosResponse] = await Promise.all([
+          api.get('assets/reporte'),
+          api.get('assets/activos')
+        ]);
+
+        const reporteRaw = reporteResponse?.rows ?? reporteResponse;
+        const reporteObj = Array.isArray(reporteRaw) ? reporteRaw[0] : reporteRaw;
+
+        const activosRaw = activosResponse?.rows ?? activosResponse;
+        const activosList = Array.isArray(activosRaw) ? activosRaw : [];
+
+        setReporteData(reporteObj || {});
+        setActivos(activosList);
+      } catch (error) {
+        console.error('Error al cargar reportes:', error);
+      }
+    };
+
+    cargarDatosReporte();
+  }, []);
+
+  const totalActivos = toNumber(reporteData.total_activos);
+  const bienesActivos = toNumber(reporteData.bienes_activos);
+  const enMantenimiento = toNumber(reporteData.activos_en_mantenimiento);
+  const aniadidosRecientes = toNumber(reporteData.aniadidos_recientemente);
+  const valorTotal = toNumber(reporteData.valor_total);
+  const retirados = Math.max(totalActivos - bienesActivos - enMantenimiento, 0);
 
   const stats = [
     {
       label: 'Total de Activos',
-      value: '1,248',
-      change: '+12%',
-      description: 'Desde hace un mes',
+      value: totalActivos.toLocaleString('es-MX'),
+      change: `${aniadidosRecientes} recientes`,
+      description: 'Total registrado',
       icon: FileText,
       color: 'blue',
     },
     {
       label: 'Bienes Activos',
-      value: '1,102',
-      change: '88.3%',
-      description: 'Grado de uso',
+      value: bienesActivos.toLocaleString('es-MX'),
+      change: `${totalActivos > 0 ? ((bienesActivos * 100) / totalActivos).toFixed(1) : '0.0'}%`,
+      description: 'Activos vigentes',
       icon: CheckCircle,
       color: 'green',
     },
     {
       label: 'Mantenimiento',
-      value: '45',
-      change: '5 Overdue',
+      value: enMantenimiento.toLocaleString('es-MX'),
+      change: 'Activos en revisión',
       description: 'Activos en mantenimiento',
       icon: AlertCircle,
       color: 'orange',
     },
     {
       label: 'Valor Total',
-      value: '$1.2M',
-      change: '+3.2%',
-      description: 'Apreciación',
+      value: moneyMx.format(valorTotal),
+      change: 'Inventario actual',
+      description: 'Valor contable',
       icon: DollarSign,
       color: 'purple',
     },
   ];
 
   const acquisitionData = [
-    { month: 'Enero', value: 15 },
-    { month: 'Febrero', value: 20 },
-    { month: 'Marzo', value: 18 },
-    { month: 'Abril', value: 25 },
-    { month: 'Mayo', value: 22 },
-    { month: 'Junio', value: 28 },
-    { month: 'Julio', value: 32 },
-    { month: 'Agosto', value: 30 },
-    { month: 'Septiembre', value: 35 },
-    { month: 'Octubre', value: 42 },
+    { month: 'Enero', value: toNumber(reporteData.enero) },
+    { month: 'Febrero', value: toNumber(reporteData.febrero) },
+    { month: 'Marzo', value: toNumber(reporteData.marzo) },
+    { month: 'Abril', value: toNumber(reporteData.abril) },
+    { month: 'Mayo', value: toNumber(reporteData.mayo) },
+    { month: 'Junio', value: toNumber(reporteData.junio) },
+    { month: 'Julio', value: toNumber(reporteData.julio) },
+    { month: 'Agosto', value: toNumber(reporteData.agosto) },
+    { month: 'Septiembre', value: toNumber(reporteData.septiembre) },
+    { month: 'Octubre', value: toNumber(reporteData.octubre) },
+    { month: 'Noviembre', value: toNumber(reporteData.noviembre) },
+    { month: 'Diciembre', value: toNumber(reporteData.diciembre) },
   ];
 
-  const maxValue = Math.max(...acquisitionData.map(d => d.value));
-  const chartHeight = 200;
+  const maxValue = Math.max(...acquisitionData.map(d => d.value), 1);
 
-  const recentActivities = [
-    {
-      activo: 'MacBook Pro 16"',
-      responsable: 'Persona1',
-      id: '12345',
-      categoria: 'Cómputo',
-      estado: 'Activo',
-      estadoColor: 'green',
-      ubicacion: 'Aula C107',
-      fecha: 'Oct 24, 2023',
-      accion: 'Asignado a Carlos Mendoza',
-    },
-    {
-      activo: 'HP LaserJet Pro',
-      responsable: 'Persona 2',
-      id: '12346',
-      categoria: 'Periféricos',
-      estado: 'Mantenimiento',
-      estadoColor: 'yellow',
-      ubicacion: 'Aula C208',
-      fecha: 'Oct 22, 2023',
-      accion: 'Cambio de estado a mantenimiento',
-    },
-  ];
+  const recentActivities = activos.slice(0, 10).map((activo) => ({
+    activo: activo.nombre,
+    responsable: activo.responsable,
+    id: activo.id_activo,
+    categoria: activo.categoria,
+    estado: activo.estado,
+    estadoColor: activo.color,
+    ubicacion: `${activo.aula} (${activo.tipo_aula})`,
+    fecha: formatearFecha(activo.fecha_registro),
+    accion: 'Registro de activo',
+  }));
 
   const statusDistribution = [
-    { label: 'Activo', value: 88.3, color: '#10b981' },
-    { label: 'Mantenimiento', value: 8.2, color: '#f59e0b' },
-    { label: 'Retirado', value: 3.5, color: '#6b7280' },
+    { label: 'Activo', value: totalActivos > 0 ? (bienesActivos * 100) / totalActivos : 0, color: '#10b981' },
+    { label: 'Mantenimiento', value: totalActivos > 0 ? (enMantenimiento * 100) / totalActivos : 0, color: '#f59e0b' },
+    { label: 'Retirado', value: totalActivos > 0 ? (retirados * 100) / totalActivos : 0, color: '#6b7280' },
   ];
+
+  const estadoColorClass = (color) => {
+    if (color === 'green') return 'text-green-600';
+    if (color === 'yellow') return 'text-yellow-600';
+    if (color === 'red') return 'text-red-600';
+    if (color === 'blue') return 'text-blue-600';
+    return 'text-slate-500';
+  };
 
   const getStatColor = (color) => {
     const colors = {
@@ -355,11 +420,7 @@ const Reportes = () => {
                     {activity.responsable}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-semibold ${
-                      activity.estadoColor === 'green'
-                        ? 'text-green-600'
-                        : 'text-yellow-600'
-                    }`}>
+                    <span className={`text-xs font-semibold ${estadoColorClass(activity.estadoColor)}`}>
                       {activity.estado}
                     </span>
                   </td>

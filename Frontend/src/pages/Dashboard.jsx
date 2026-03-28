@@ -1,10 +1,36 @@
-import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, Laptop, Printer, Armchair, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 
 // Usamos la api para consumir el back
 import {api} from '../services/api';
+
+const colorEstadoTexto = {
+  green: 'text-green-600',
+  yellow: 'text-yellow-600',
+  red: 'text-red-600',
+  blue: 'text-blue-600'
+};
+
+const colorCategoria = [
+  { bg: 'bg-blue-600', stroke: '#2563eb' },
+  { bg: 'bg-slate-400', stroke: '#94a3b8' },
+  { bg: 'bg-emerald-500', stroke: '#10b981' },
+  { bg: 'bg-amber-500', stroke: '#f59e0b' },
+  { bg: 'bg-rose-500', stroke: '#f43f5e' }
+];
+
+const formatoMoneda = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  maximumFractionDigits: 2
+});
+
+const toNumber = (value) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const Dashboard = () => {
   const { isDark } = useTheme();
@@ -20,6 +46,13 @@ const Dashboard = () => {
   const [selectedEdificio, setSelectedEdificio] = useState('');
   const [selectedPiso, setSelectedPiso] = useState('');
   const [selectedAula, setSelectedAula] = useState('');
+  const [dashboardData, setDashboardData] = useState({
+    total_activos: '0',
+    activos_en_mantenimiento: '0',
+    aniadidos_recientemente: '0',
+    valor_total: '0'
+  });
+  const [activos, setActivos] = useState([]);
   // Para nuevas ubicaciones 
   const [nuevoEdificio, setNuevoEdificio] = useState({
     clave: '',
@@ -38,54 +71,98 @@ const Dashboard = () => {
     numero_aula: '',
     tipo: 'Aula',
   });
-  // Datos de ejemplo
+  useEffect(() => {
+    const cargarDashboard = async () => {
+      try {
+        const [dashboardResponse, activosResponse] = await Promise.all([
+          api.get('assets/dashboard'),
+          api.get('assets/activos')
+        ]);
+
+        const dashboardRaw = dashboardResponse?.rows ?? dashboardResponse;
+        const dashboardObj = Array.isArray(dashboardRaw) ? dashboardRaw[0] : dashboardRaw;
+
+        const activosRaw = activosResponse?.rows ?? activosResponse;
+        const activosList = Array.isArray(activosRaw) ? activosRaw : [];
+
+        setDashboardData(dashboardObj || {});
+        setActivos(activosList);
+      } catch (error) {
+        console.error('Error al cargar datos del dashboard:', error);
+      }
+    };
+
+    cargarDashboard();
+  }, []);
+
+  const totalActivos = toNumber(dashboardData.total_activos);
+  const mantenimiento = toNumber(dashboardData.activos_en_mantenimiento);
+  const recientes = toNumber(dashboardData.aniadidos_recientemente);
+  const valorTotal = toNumber(dashboardData.valor_total);
+
   const stats = [
-    { 
-      label: 'TOTAL ACTIVOS', 
-      value: '2,453', 
-      change: '+42%', 
-      icon: FileText, 
+    {
+      label: 'TOTAL ACTIVOS',
+      value: totalActivos.toLocaleString('es-MX'),
+      change: 'Registrados',
+      icon: FileText,
       color: 'blue',
       trend: 'up'
     },
-    { 
-      label: 'EN MANTENIMIENTO', 
-      value: '18', 
-      change: '3 por devaluarse', 
-      icon: Wrench, 
+    {
+      label: 'EN MANTENIMIENTO',
+      value: mantenimiento.toLocaleString('es-MX'),
+      change: 'Activos',
+      icon: Wrench,
       color: 'orange',
       trend: 'warning'
     },
-    { 
-      label: 'AÑADIDOS RECIENTEMENTE', 
-      value: '45', 
-      change: 'Últimos 7 días', 
-      icon: TrendingUp, 
+    {
+      label: 'AÑADIDOS RECIENTEMENTE',
+      value: recientes.toLocaleString('es-MX'),
+      change: 'Últimos registros',
+      icon: TrendingUp,
       color: 'green',
       trend: 'up'
     },
-    { 
-      label: 'VALOR TOTAL', 
-      value: '$1.2M', 
-      change: '+4.5%', 
-      icon: DollarSign, 
+    {
+      label: 'VALOR TOTAL',
+      value: formatoMoneda.format(valorTotal),
+      change: 'Inventario actual',
+      icon: DollarSign,
       color: 'purple',
       trend: 'up'
-    },
+    }
   ];
 
-  const actividades = [
-    { nombre: 'MacBook Pro M2', codigo: '12345', estado: 'Revisión', responsable:'Carlos Mendoza', estadoColor: 'green', ubicacion: 'Aula 107', piso: 'Edificio C', icon: Laptop },
-    { nombre: 'HP LaserJet Pro', codigo: '12346', estado: 'Mantenimiento', responsable:'Daniel Jr', estadoColor: 'yellow', ubicacion: 'Aula 206', piso: 'Edificio D', icon: Printer },
-    { nombre: 'Ergo Chair V2', codigo: '12347', estado: 'Asignado', responsable:'Perla Olvera', estadoColor: 'blue', ubicacion: 'Aula 208', piso: 'Edificio A', icon: Armchair },
-    { nombre: 'iPad Pro 12.9', codigo: '12348', estado: 'Perdido', responsable:'Ricardo Veledíaz', estadoColor: 'red', ubicacion: 'Lab. 1', piso: 'Edificio B', icon: FileText },
-  ];
+  const actividades = activos.slice(0, 8).map((activo) => ({
+    nombre: activo.nombre,
+    codigo: activo.id_activo,
+    estado: activo.estado,
+    responsable: activo.responsable,
+    estadoColor: activo.color,
+    ubicacion: activo.aula,
+    piso: activo.tipo_aula,
+    icon: FileText
+  }));
 
-  const distribucion = [
-    { categoria: 'Electronicos', porcentaje: 45, color: 'bg-blue-600' },
-    { categoria: 'Muebles', porcentaje: 30, color: 'bg-slate-400' },
-    { categoria: 'Vehiculos', porcentaje: 25, color: 'bg-purple-600' },
-  ];
+  const totalDistribucion = activos.length;
+  const conteoCategorias = activos.reduce((acc, activo) => {
+    const key = activo.categoria || 'Sin categoría';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const distribucion = Object.entries(conteoCategorias)
+    .map(([categoria, cantidad], index) => {
+      const porcentaje = totalDistribucion > 0 ? Math.round((cantidad * 100) / totalDistribucion) : 0;
+      const color = colorCategoria[index % colorCategoria.length];
+      return { categoria, porcentaje, ...color };
+    })
+    .sort((a, b) => b.porcentaje - a.porcentaje);
+
+  const circumference = 2 * Math.PI * 40;
+  let acumulado = 0;
 
   const edificioSeleccionadoParaPiso = edificios.find((item) => item.id_edificio === nuevoPiso.edificioId);
   const pisoSeleccionadoParaAula = pisosXedificio.find((item) => item.id_piso === nuevaAula.pisoId);
@@ -610,12 +687,24 @@ const Dashboard = () => {
             <div className="relative w-48 h-48">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="none" stroke={isDark ? '#334155' : '#e2e8f0'} strokeWidth="12" />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#2563eb" strokeWidth="12" 
-                  strokeDasharray="113 251" strokeDashoffset="0" />
-                <circle cx="50" cy="50" r="40" fill="none" stroke={isDark ? '#64748b' : '#94a3b8'} strokeWidth="12" 
-                  strokeDasharray="75 251" strokeDashoffset="-113" />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#9333ea" strokeWidth="12" 
-                  strokeDasharray="63 251" strokeDashoffset="-188" />
+                {distribucion.map((item, index) => {
+                  const segmento = (item.porcentaje / 100) * circumference;
+                  const circle = (
+                    <circle
+                      key={index}
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke={item.stroke}
+                      strokeWidth="12"
+                      strokeDasharray={`${segmento} ${circumference}`}
+                      strokeDashoffset={-acumulado}
+                    />
+                  );
+                  acumulado += segmento;
+                  return circle;
+                })}
               </svg>
             </div>
           </div>
@@ -624,7 +713,7 @@ const Dashboard = () => {
             {distribucion.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                  <div className={`w-3 h-3 rounded-full ${item.bg}`}></div>
                   <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.categoria}</span>
                 </div>
                 <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>{item.porcentaje}%</span>
@@ -672,12 +761,7 @@ const Dashboard = () => {
                         <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{actividad.responsable}</span>
                       </td>
                       <td className="py-4">
-                        <span className={`text-xs font-medium ${
-                          actividad.estadoColor === 'green' ? 'text-green-600' :
-                          actividad.estadoColor === 'yellow' ? 'text-yellow-600' :
-                          actividad.estadoColor === 'blue' ? 'text-blue-600' :
-                          'text-red-600'
-                        }`}>
+                        <span className={`text-xs font-medium ${colorEstadoTexto[actividad.estadoColor] || 'text-slate-500'}`}>
                           {actividad.estado}
                         </span>
                       </td>
