@@ -1,114 +1,41 @@
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import {api} from '../services/api';
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return '';
+
+  const date = new Date(fecha);
+  if (Number.isNaN(date.getTime())) return String(fecha);
+
+  return date.toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
 
 const Usuarios = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [usuarios, setUsuarios] = useState([]);
 
-  // Datos de ejemplo
-  const usuarios = [
-    {
-      id: '1',
-      nombre_usuario: 'Carlos',
-      apaterno_usuario: 'Mendoza',
-      amaterno_usuario: 'García',
-      correo_usuario: 'carlos.mendoza@institution.com',
-      pwd_usuario: 'password123',
-      telefono_usuario: '+34 912 345 678',
-      fecha_registro_usuario: '2023-08-10',
-      FK_id_rol: '1',
-      FK_id_puesto: '1',
-      nombre: 'Carlos Mendoza García',
-      rol: 'Administrador',
-      puesto: 'Director',
-      email: 'carlos.mendoza@gmail.com',
-      telefono: '+34 912 345 678',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Aug 10, 2023',
-    },
-    {
-      id: '2',
-      nombre_usuario: 'Daniyel',
-      apaterno_usuario: 'Paulín',
-      amaterno_usuario: 'López',
-      correo_usuario: 'daniyel.paulin@gmail.com',
-      pwd_usuario: 'password123',
-      telefono_usuario: '+34 912 345 679',
-      fecha_registro_usuario: '2023-09-15',
-      FK_id_rol: '2',
-      FK_id_puesto: '2',
-      nombre: 'Daniyel Paulín López',
-      rol: 'Auditor',
-      puesto: 'Coordinador',
-      email: 'daniyel.paulin@gmail.com',
-      telefono: '+34 912 345 679',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Sep 15, 2023',
-    },
-    {
-      id: '3',
-      nombre_usuario: 'María',
-      apaterno_usuario: 'Rodríguez',
-      amaterno_usuario: 'Fernández',
-      correo_usuario: 'maria.rodriguez@gmail.com',
-      pwd_usuario: 'password123',
-      telefono_usuario: '+34 912 345 680',
-      fecha_registro_usuario: '2023-10-01',
-      FK_id_rol: '3',
-      FK_id_puesto: '3',
-      nombre: 'María Rodríguez Fernández',
-      rol: 'Usuario',
-      puesto: 'Técnico',
-      email: 'maria.rodriguez@gmail.com',
-      telefono: '+34 912 345 680',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Oct 01, 2023',
-    },
-    {
-      id: '4',
-      nombre_usuario: 'Juan',
-      apaterno_usuario: 'Pérez',
-      amaterno_usuario: 'Sánchez',
-      correo_usuario: 'juan.perez@gmail.com',
-      pwd_usuario: 'password123',
-      telefono_usuario: '+34 912 345 681',
-      fecha_registro_usuario: '2023-11-12',
-      FK_id_rol: '4',
-      FK_id_puesto: '4',
-      nombre: 'Juan Pérez Sánchez',
-      rol: 'Usuario',
-      puesto: 'Asistente',
-      email: 'juan.perez@gmail.com',
-      telefono: '+34 912 345 681',
-      estado: 'Activo',
-      estadoColor: 'green',
-      fecha: 'Nov 12, 2023',
-    },
-    {
-      id: '5',
-      nombre_usuario: 'Ana',
-      apaterno_usuario: 'Gómez',
-      amaterno_usuario: 'Martínez',
-      correo_usuario: 'ana.gomez@gmail.com',
-      pwd_usuario: 'password123',
-      telefono_usuario: '+34 912 345 682',
-      fecha_registro_usuario: '2023-12-05',
-      FK_id_rol: '3',
-      FK_id_puesto: '5',
-      nombre: 'Ana Gómez Martínez',
-      rol: 'Usuario',
-      puesto: 'Consultor',
-      email: 'ana.gomez@gmail.com',
-      telefono: '+34 912 345 682',
-      estado: 'Inactivo',
-      estadoColor: 'red',
-      fecha: 'Dec 05, 2023',
-    },
-  ];
+  useEffect(()=>{
+    const getUsuarios= async()=>{
+      try{
+        const response = await api.get('usuarios');
+        setUsuarios(response);
+        console.log(response);
+      } catch (error) {
+        console.error('Error fetching usuarios:', error);
+      }
+    }
+    getUsuarios();
+
+  }, [])
+  
 
   const getEstadoBadgeColor = (estado) => {
     switch (estado) {
@@ -211,16 +138,16 @@ const Usuarios = () => {
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {usuarios.map((usuario) => (
-                <tr key={usuario.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                <tr key={usuario.id_usuario} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-4 py-3">
                     <div>
                       <p 
-                        onClick={() => navigate(`/perfil/${usuario.id}`)}
+                        onClick={() => navigate(`/perfil/${usuario.id_usuario}`)}
                         className={`font-medium text-sm cursor-pointer hover:text-blue-600 transition ${isDark ? 'text-slate-100' : 'text-slate-900'}`}
                       >
-                        {usuario.nombre}
+                        {usuario.nombre_usuario} {usuario.apellido_paterno} {usuario.apellido_materno}
                       </p>
-                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>ID: {usuario.id}</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>ID: {usuario.id_usuario}</p>
                     </div>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -236,12 +163,12 @@ const Usuarios = () => {
                     {usuario.puesto}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-semibold ${getEstadoBadgeColor(usuario.estado)}`}>
-                      {usuario.estado}
+                    <span className={`text-xs font-semibold ${usuario.activo ? 'text-green-600' : 'text-red-600'}`}>
+                      {usuario.activo? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {usuario.fecha}
+                    {formatearFecha(usuario.fecha_registro ?? usuario.fecha_registro_usuario)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -250,7 +177,7 @@ const Usuarios = () => {
                           ? 'text-slate-500 hover:text-blue-400 hover:bg-blue-900/20'
                           : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
                       }`}
-                        onClick={()=>navigate(`/usuarios/editar/${usuario.id}`,{
+                        onClick={()=>navigate(`/usuarios/editar/${usuario.id_usuario}`,{
                           state:{
                             modo: 'editar',
                             usuario: usuario
@@ -264,7 +191,7 @@ const Usuarios = () => {
                           ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
                           : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
                       }`}
-                        onClick={()=>navigate(`/usuarios/eliminar/${usuario.id}`,{
+                        onClick={()=>navigate(`/usuarios/eliminar/${usuario.id_usuario}`,{
                           state:{
                             modo: 'eliminar',
                             usuario: usuario

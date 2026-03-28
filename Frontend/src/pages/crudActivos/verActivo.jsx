@@ -296,7 +296,7 @@ const VerActivo = () => {
         setMetodosDepreciacion(normalizarOpciones(extraerItems(metodosResponse)));
         setEstadosActivo(normalizarOpciones(extraerItems(estadosResponse)));
         setAulas(normalizarAulas(extraerItems(aulasResponse)));
-        setEncargados(encargadosResponse.data.rows);
+        setEncargados(encargadosResponse);
       } catch (error) {
         console.error('No fue posible cargar los catálogos del formulario de activos:', error);
       } finally {

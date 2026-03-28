@@ -1,4 +1,4 @@
-import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X } from 'lucide-react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -36,12 +36,18 @@ const Dashboard = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const [showUbicacionMenu, setShowUbicacionMenu] = useState(false);
+  const [showCategoriaMenu, setShowCategoriaMenu] = useState(false);
   const [activeCreateForm, setActiveCreateForm] = useState('edificio');
 
   const [edificios, setEdificios] = useState([]);
   const [pisosXedificio, setPisosXedificio] = useState([]);
   const [aulasXpiso, setAulasXpiso] = useState([]);
   const [operationStatus, setOperationStatus] = useState({ type: '', message: '' });
+  const [categoriaStatus, setCategoriaStatus] = useState({ type: '', message: '' });
+  const [nuevaCategoria, setNuevaCategoria] = useState({
+    nombre: '',
+    descripcion: ''
+  });
 
   const [selectedEdificio, setSelectedEdificio] = useState('');
   const [selectedPiso, setSelectedPiso] = useState('');
@@ -285,6 +291,25 @@ const Dashboard = () => {
       await cargarAulasXpiso(result.id_piso ?? nuevaAula.pisoId);
     } catch (error) {
       setOperationStatus({ type: 'error', message: `Error al crear aula: ${error.message}` });
+    }
+  };
+
+  const crearCategoria = async () => {
+    if (!nuevaCategoria.nombre.trim() || !nuevaCategoria.descripcion.trim()) {
+      setCategoriaStatus({ type: 'error', message: 'Completa nombre y descripcion de la categoria.' });
+      return;
+    }
+
+    try {
+      await api.post('categorias', {
+        nombre: nuevaCategoria.nombre.trim(),
+        descripcion: nuevaCategoria.descripcion.trim(),
+      });
+
+      setNuevaCategoria({ nombre: '', descripcion: '' });
+      setCategoriaStatus({ type: 'success', message: 'Categoria creada correctamente.' });
+    } catch (error) {
+      setCategoriaStatus({ type: 'error', message: `Error al crear categoria: ${error.message}` });
     }
   };
 
@@ -673,15 +698,89 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`rounded-xl p-6 shadow-sm border transition ${
+        <div className={`rounded-xl p-6 shadow-sm border transition relative ${
           isDark 
             ? 'bg-slate-800 border-slate-700' 
             : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between mb-6">
             <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Distribución por Categoría</h2>
-            <button className={`${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'}`}>•••</button>
+            <button
+              className={`${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-600'}`}
+              onClick={() => {
+                setShowCategoriaMenu((prev) => {
+                  const nextState = !prev;
+                  if (nextState) {
+                    setCategoriaStatus({ type: '', message: '' });
+                  }
+                  return nextState;
+                });
+              }}
+              type="button"
+            >
+              <MoreVertical size={18} />
+            </button>
           </div>
+
+          {showCategoriaMenu && (
+            <div className={`absolute right-6 top-16 w-[320px] max-w-[85vw] rounded-xl border shadow-lg z-20 p-4 space-y-3 ${
+              isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Nueva categoria</h3>
+                <button
+                  className={`p-1 rounded transition ${
+                    isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
+                  onClick={() => setShowCategoriaMenu(false)}
+                  type="button"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {categoriaStatus.message && (
+                <div className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                  categoriaStatus.type === 'success'
+                    ? isDark
+                      ? 'bg-green-950/40 border-green-800 text-green-300'
+                      : 'bg-green-50 border-green-200 text-green-700'
+                    : isDark
+                      ? 'bg-red-950/40 border-red-800 text-red-300'
+                      : 'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                  {categoriaStatus.message}
+                </div>
+              )}
+
+              <input
+                type="text"
+                placeholder="Nombre de categoria"
+                value={nuevaCategoria.nombre}
+                onChange={(event) => setNuevaCategoria((prev) => ({ ...prev, nombre: event.target.value }))}
+                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                  isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                }`}
+              />
+
+              <textarea
+                placeholder="Descripcion breve"
+                value={nuevaCategoria.descripcion}
+                onChange={(event) => setNuevaCategoria((prev) => ({ ...prev, descripcion: event.target.value }))}
+                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[88px] resize-none ${
+                  isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                }`}
+              />
+
+              <button
+                className="w-full bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                onClick={crearCategoria}
+                type="button"
+              >
+                Crear categoria
+              </button>
+            </div>
+          )}
           
           <div className="flex items-center justify-center mb-8">
             <div className="relative w-48 h-48">
