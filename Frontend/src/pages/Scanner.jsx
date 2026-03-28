@@ -1,16 +1,124 @@
 import { Camera, CameraOff, Flashlight, Search, Package, Clock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
-
+import jsQR from 'jsqr';
+import  {api} from '../services/api';
 const Scanner = () => {
   const { isDark } = useTheme();
   const [cameraActive, setCameraActive] = useState(true);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  const [codigoDetectado, setCodigoDetectado] = useState('');
+  const [codigoManual, setCodigoManual] = useState('');
+  const [assetData, setAssetData] = useState({});
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const detectorRef = useRef(null);
+  const rafRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(()=>{
+      if(codigoDetectado){
+        const fetchAsset= async()=>{
+          try {
+            const idBuscado = String(codigoDetectado).trim();
+            if (!idBuscado) {
+              setAssetData({});
+              return;
+            }
+
+            console.log('Buscando activo con ID:', idBuscado);
+            const response = await api.get(`assets/activo/${idBuscado}`);
+            console.log('Activo encontrado:', response);
+            
+            if (Array.isArray(response) && response.length > 0) {
+              setAssetData(response[0]);
+            } else if (response && typeof response === 'object') {
+              setAssetData(response);
+            } else {
+              setAssetData({});
+            }
+            //console.log('Datos del activo:', assetData);
+            
+          } catch (error) {
+            console.error('No se pudo obtener el activo:', error);
+            setAssetData({});
+          }
+        };
+        fetchAsset();
+      }
+  }, [codigoDetectado]);
+  
+
+  const detenerEscaneo = () => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  };
+
+  const iniciarEscaneo = () => {
+    if (!videoRef.current) {
+      return;
+    }
+
+    const escanearFrame = async () => {
+      if (!cameraActive || !videoRef.current) {
+        return;
+      }
+
+      try {
+        if (videoRef.current.readyState >= 2) {
+          if (detectorRef.current) {
+            const codigos = await detectorRef.current.detect(videoRef.current);
+            if (Array.isArray(codigos) && codigos.length > 0) {
+              const texto = codigos[0].rawValue || '';
+              if (texto) {
+                setCodigoDetectado(texto);
+                setCameraActive(false);
+                return;
+              }
+            }
+          } else {
+            if (!canvasRef.current) {
+              canvasRef.current = document.createElement('canvas');
+            }
+
+            const width = videoRef.current.videoWidth;
+            const height = videoRef.current.videoHeight;
+
+            if (width > 0 && height > 0) {
+              const canvas = canvasRef.current;
+              canvas.width = width;
+              canvas.height = height;
+
+              const context = canvas.getContext('2d', { willReadFrequently: true });
+              if (context) {
+                context.drawImage(videoRef.current, 0, 0, width, height);
+                const imageData = context.getImageData(0, 0, width, height);
+                const codigo = jsQR(imageData.data, width, height);
+
+                if (codigo?.data) {
+                  setCodigoDetectado(codigo.data);
+                  setCameraActive(false);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      } catch {
+      }
+
+      rafRef.current = requestAnimationFrame(escanearFrame);
+    };
+
+    rafRef.current = requestAnimationFrame(escanearFrame);
+  };
 
   const stopCameraStream = () => {
+    detenerEscaneo();
+
     if (streamRef.current) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
 
@@ -44,6 +152,12 @@ const Scanner = () => {
 
     const initCamera = async () => {
       try {
+        if (window.BarcodeDetector) {
+          detectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
+        } else {
+          detectorRef.current = null;
+        }
+
         if (!cameraActive) {
           stopCameraStream();
           return;
@@ -70,7 +184,9 @@ const Scanner = () => {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          iniciarEscaneo();
         }
+
         setCameraError(null);
       } catch (error) {
         setCameraError('No se puede acceder a la cámara');
@@ -115,6 +231,13 @@ const Scanner = () => {
       estado: 'Mantenimiento',
     },
   ];
+
+  const activoSeleccionado = assetData ?? {};
+  const estadoColorClass = {
+    green: 'text-green-600',
+    yellow: 'text-yellow-600',
+    red: 'text-red-600'
+  }[activoSeleccionado.color] || 'text-slate-500';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
@@ -191,7 +314,7 @@ const Scanner = () => {
               <div className="bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
                 <p className="text-white text-sm flex items-center gap-2">
                   <Package size={16} />
-                  Alinea el código QR dentro del marco
+                  {codigoDetectado ? `Codigo detectado: ${codigoDetectado}` : 'Alinea el código QR dentro del marco'}
                 </p>
               </div>
             </div>
@@ -210,8 +333,11 @@ const Scanner = () => {
                     ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500'
                     : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                 }`}
+                onChange={(e) => setCodigoManual(e.target.value)}
               />
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
+              <button
+                onClick={() => setCodigoDetectado(codigoManual)} 
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
                 <Search size={16} />
                 Buscar
               </button>
@@ -237,10 +363,11 @@ const Scanner = () => {
             isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
           }`}>
             <h4 className={`font-bold text-lg mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-              {currentAsset.nombre}
+              {assetData? assetData.nombre : 'Sin activo seleccionado'}
             </h4>
+
             <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              ID: {currentAsset.id}
+              ID: {assetData?.id_activo || 'N/A'}
             </p>
 
             <div className="space-y-2 mb-4">
@@ -249,7 +376,7 @@ const Scanner = () => {
                   Categoría
                 </span>
                 <span className={`text-xs font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  {currentAsset.categoria}
+                  {assetData?.categoria || 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -258,10 +385,10 @@ const Scanner = () => {
                 </span>
                 <div className="flex items-center gap-1">
                   <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">
-                    J
+                    {assetData?.encargado?.charAt(0) || 'N/A'}
                   </div>
                   <span className={`text-xs font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                    {currentAsset.encargado}
+                    {assetData?.encargado || 'N/A'}
                   </span>
                 </div>
               </div>
@@ -269,8 +396,8 @@ const Scanner = () => {
                 <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Estado
                 </span>
-                <span className="inline-block text-xs font-semibold text-green-600">
-                  ● {currentAsset.estado}
+                <span className={`inline-block text-xs font-semibold ${estadoColorClass}`}>
+                  ● {assetData?.estado || 'N/A'}
                 </span>
               </div>
             </div>
@@ -282,7 +409,7 @@ const Scanner = () => {
             <div className="flex items-center justify-center gap-2 text-xs">
               <Clock size={12} className="text-green-600" />
               <span className="text-green-600 font-medium">
-                Historial {currentAsset.historial}
+                Historial {assetData?.historial || 'N/A'}
               </span>
             </div>
           </div>

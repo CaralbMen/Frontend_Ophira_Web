@@ -121,6 +121,82 @@ const normalizarAulas = (items) => {
     .filter(Boolean);
 };
 
+const formatearFechaInput = (fecha) => {
+  if (!fecha) return '';
+  if (typeof fecha === 'string' && fecha.includes('T')) {
+    return fecha.split('T')[0];
+  }
+  return String(fecha);
+};
+
+const mapActivoToFormData = (activo = {}) => ({
+  nombre: activo.nombre || activo.nombre_activo || '',
+  descripcion: activo.descripcion || activo.descripcion_activo || '',
+  modelo: activo.modelo || activo.Modelo_activo || '',
+  numero_serie: activo.numero_serie || activo.numeroSerie || '',
+  fecha_compra: formatearFechaInput(activo.fecha_compra || activo.fecha_compra_activo || ''),
+  precio_compra: activo.precio_compra ?? activo.precio_original ?? '',
+  valor_actual: activo.valor_actual ?? activo.precio_actual ?? '',
+  valor_residual: activo.valor_residual ?? '',
+  vida_util_anios: activo.vida_util_anios ?? activo.vida_util ?? '',
+  id_metodo_depreciacion: String(activo.id_metodo_depreciacion || activo.FK_id_metodo_depreciacion || '1'),
+  id_categoria: String(activo.id_categoria || activo.FK_id_categoria || ''),
+  id_estado_activo: String(activo.id_estado_activo || activo.FK_id_estado || ''),
+  id_aula: String(activo.id_aula || activo.FK_id_aula || activo.aula || ''),
+  id_responsable: String(activo.id_responsable || activo.FK_id_responsable || activo.FK_id_responsable_activo || ''),
+  multiparte: Boolean(activo.multiparte || (Array.isArray(activo.partes) && activo.partes.length > 0))
+});
+
+const mapPartesToState = (partes = []) => {
+  if (!Array.isArray(partes) || partes.length === 0) {
+    return [{ id: 1, descripcion: '', id_aula: '' }];
+  }
+
+  return partes.map((parte, index) => ({
+    id: parte.id_parte ?? parte.id ?? index + 1,
+    descripcion: parte.descripcion ?? parte.nombre_parte ?? '',
+    id_aula: String(parte.id_aula ?? parte.FK_id_aula_parte ?? '')
+  }));
+};
+
+const extraerActivo = (response) => {
+  if (!response) return null;
+
+  if (Array.isArray(response)) {
+    return response[0] ?? null;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data[0] ?? null;
+  }
+
+  if (Array.isArray(response?.rows)) {
+    return response.rows[0] ?? null;
+  }
+
+  if (Array.isArray(response?.data?.rows)) {
+    return response.data.rows[0] ?? null;
+  }
+
+  if (response?.data?.activo) {
+    return response.data.activo;
+  }
+
+  if (response?.activo) {
+    return response.activo;
+  }
+
+  if (response?.data && typeof response.data === 'object') {
+    return response.data;
+  }
+
+  if (typeof response === 'object') {
+    return response;
+  }
+
+  return null;
+};
+
 const VerActivo = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -158,44 +234,51 @@ const VerActivo = () => {
   const [aulas, setAulas] = useState([]);
   const [encargados, setEncargados] = useState([]);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
+  const [cargandoActivo, setCargandoActivo] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   // const enviarDatos= async()=>{
   //   console.log('Datos a enviar:', formData);
   // }
   useEffect(() => {
-    if (activoExistente) {
-      setFormData({
-        nombre: activoExistente.nombre || activoExistente.nombre_activo || '',
-        descripcion: activoExistente.descripcion || activoExistente.descripcion_activo || '',
-        modelo: activoExistente.modelo || activoExistente.Modelo_activo || '',
-        numero_serie: activoExistente.numero_serie || '',
-        fecha_compra: activoExistente.fecha_compra || activoExistente.fecha_compra_activo || '',
-        precio_compra: activoExistente.precio_compra || activoExistente.precio_original || '',
-        valor_actual: activoExistente.valor_actual || activoExistente.precio_actual || '',
-        valor_residual: activoExistente.valor_residual || '',
-        vida_util_anios: activoExistente.vida_util_anios || activoExistente.vida_util || '',
-        id_metodo_depreciacion: String(activoExistente.id_metodo_depreciacion || '1'),
-        id_categoria: String(activoExistente.id_categoria || activoExistente.FK_id_categoria || ''),
-        id_estado_activo: String(activoExistente.id_estado_activo || activoExistente.FK_id_estado || ''),
-        id_aula: activoExistente.id_aula || activoExistente.FK_id_aula || '',
-        id_responsable: String(activoExistente.id_responsable || activoExistente.FK_id_responsable || ''),
-        multiparte: activoExistente.multiparte || false
-      });
-      
-      if (activoExistente.partes && activoExistente.partes.length > 0) {
-        setPartes(
-          activoExistente.partes.map((parte, index) => ({
-            id: parte.id ?? index + 1,
-            descripcion: parte.descripcion ?? parte.nombre_parte ?? '',
-            id_aula: String(parte.id_aula ?? parte.FK_id_aula_parte ?? '')
-          }))
-        );
+    const cargarActivoPorId = async () => {
+      if (!id || modo === 'crear') {
+        return;
       }
-    } else if (id && modo !== 'crear') {
-      // fetchActivo(id).then(data => setFormData(data));
+
+      setCargandoActivo(true);
+      try {
+        console.log('Cargando activo con ID:', id);
+        const response = await api.get(`assets/id/${id}`);
+        const activo = response.rows;
+        console.log('Activo cargado:', activo);
+        if (!activo) {
+          window.alert('No fue posible obtener los datos del activo.');
+          navigate(-1);
+          return;
+        }
+
+        setFormData(mapActivoToFormData(activo));
+        setPartes(mapPartesToState(activo.partes));
+      } catch (error) {
+        console.error('No fue posible cargar el activo para edición:', error);
+        window.alert('No se pudo cargar el activo. Intenta nuevamente.');
+        navigate(-1);
+      } finally {
+        setCargandoActivo(false);
+      }
+    };
+
+    if (id && modo !== 'crear') {
+      cargarActivoPorId();
+      return;
     }
-  }, [id, activoExistente, modo]);
+
+    if (activoExistente) {
+      setFormData(mapActivoToFormData(activoExistente));
+      setPartes(mapPartesToState(activoExistente.partes));
+    }
+  }, [id, activoExistente, modo, navigate]);
 
   useEffect(() => {
     const cargarCatalogos = async () => {
@@ -906,15 +989,15 @@ const VerActivo = () => {
               <button
                 type={modo === 'eliminar' ? 'button' : 'submit'}
                 onClick={modo === 'eliminar' ? handleEliminar : undefined}
-                disabled={guardando}
+                disabled={guardando || cargandoActivo}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium ${
                   modo === 'eliminar'
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : 'bg-green-600 hover:bg-green-700 text-white'
-                } ${guardando ? 'opacity-60 cursor-not-allowed' : ''}`}
+                } ${(guardando || cargandoActivo) ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {getIconoBoton()}
-                {guardando ? 'Guardando...' : getTextBoton()}
+                {guardando ? 'Guardando...' : cargandoActivo ? 'Cargando activo...' : getTextBoton()}
               </button>
             </div>
           </div>

@@ -140,6 +140,7 @@ const Activos = () => {
         const response= await api.get('assets/activos');
         setActivos(response);
         console.log('Activos obtenidos:', response);
+        // console.log(activos);
       }catch(e){
         console.error('Error al obtener activos:', e);
       }
