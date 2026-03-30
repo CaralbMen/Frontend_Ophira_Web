@@ -3,6 +3,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {api} from '../services/api';
 import { useEffect, useMemo, useState } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const formatearFecha = (fecha) => {
   if (!fecha) return '';
@@ -206,6 +208,48 @@ const Activos = () => {
     }
   };
 
+  const exportarPdfActivos = () => {
+    if (activosFiltrados.length === 0) {
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const fechaActual = new Date().toLocaleDateString('es-MX');
+
+    doc.setFontSize(16);
+    doc.text('Inventario de Activos', 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Fecha de exportacion: ${fechaActual}`, 40, 58);
+    doc.text(`Registros: ${activosFiltrados.length}`, 240, 58);
+
+    const filas = activosFiltrados.map((activo) => {
+      const responsable = [
+        [activo.responsable, activo.responsable_apellido].filter(Boolean).join(' ').trim(),
+        [activo.responsable_puesto, activo.responsable_area].filter(Boolean).join(' de ').trim()
+      ].filter(Boolean).join(' - ') || 'Sin responsable';
+
+      return [
+        String(activo.id_activo ?? '-'),
+        String(activo.nombre ?? '-'),
+        String(activo.categoria ?? '-'),
+        String(activo.aula ?? '-'),
+        String(activo.estado ?? '-'),
+        String(responsable),
+        String(formatearFecha(activo.fecha_registro) || '-'),
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 80,
+      head: [['ID', 'Nombre', 'Categoria', 'Aula', 'Estado', 'Responsable', 'Fecha registro']],
+      body: filas,
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    doc.save(`activos_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div className="space-y-4">
       
@@ -219,7 +263,7 @@ const Activos = () => {
             isDark 
               ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}>
+          }`} onClick={exportarPdfActivos}>
             <Download size={16} />
             Exportar
           </button>
