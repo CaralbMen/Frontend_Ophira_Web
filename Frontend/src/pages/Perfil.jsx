@@ -1,82 +1,98 @@
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, Calendar, Briefcase, Shield, Edit } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../services/api';
+import { getToken } from '../services/authStorage';
+
+const getUserIdFromToken = () => {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+
+    const payload = JSON.parse(atob(parts[1]));
+    return payload?.id ? String(payload.id) : null;
+  } catch {
+    return null;
+  }
+};
 
 const Perfil = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const { id } = useParams();
+  const [usuarios, setUsuarios] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Usuario de ejemplo - en producción esto vendría de un contexto de autenticación o API
-  const usuarioActual = {
-    id: '1',
-    nombre_usuario: 'Carlos',
-    apaterno_usuario: 'Mendoza',
-    amaterno_usuario: 'García',
-    nombre_completo: 'Carlos Mendoza García',
-    correo_usuario: 'carlos.mendoza@institution.com',
-    telefono_usuario: '+34 912 345 678',
-    fecha_registro_usuario: '2023-08-10',
-    rol: 'Administrador',
-    puesto: 'Director',
-    estado: 'Activo',
-    avatar: 'CM',
-    colorAvatar: 'bg-gradient-to-br from-blue-400 to-blue-600'
-  };
+  useEffect(() => {
+    const cargarUsuarios = async () => {
+      setLoading(true);
+      setError('');
 
-  // Si hay un id en la URL, buscar ese usuario (simulado)
-  const usuarios = [
-    {
-      id: '1',
-      nombre_usuario: 'Carlos',
-      apaterno_usuario: 'Mendoza',
-      amaterno_usuario: 'García',
-      nombre_completo: 'Carlos Mendoza García',
-      correo_usuario: 'carlos.mendoza@institution.com',
-      telefono_usuario: '+34 912 345 678',
-      fecha_registro_usuario: '2023-08-10',
-      rol: 'Administrador',
-      puesto: 'Director',
-      estado: 'Activo',
-      avatar: 'CM',
-      colorAvatar: 'bg-gradient-to-br from-blue-400 to-blue-600'
-    },
-    {
-      id: '2',
-      nombre_usuario: 'Daniyel',
-      apaterno_usuario: 'Paulín',
-      amaterno_usuario: 'López',
-      nombre_completo: 'Daniyel Paulín López',
-      correo_usuario: 'daniyel.paulin@gmail.com',
-      telefono_usuario: '+34 912 345 679',
-      fecha_registro_usuario: '2023-09-15',
-      rol: 'Auditor',
-      puesto: 'Coordinador',
-      estado: 'Activo',
-      avatar: 'DP',
-      colorAvatar: 'bg-gradient-to-br from-purple-400 to-purple-600'
-    },
-    {
-      id: '3',
-      nombre_usuario: 'María',
-      apaterno_usuario: 'Rodríguez',
-      amaterno_usuario: 'Fernández',
-      nombre_completo: 'María Rodríguez Fernández',
-      correo_usuario: 'maria.rodriguez@gmail.com',
-      telefono_usuario: '+34 912 345 680',
-      fecha_registro_usuario: '2023-10-01',
-      rol: 'Usuario',
-      puesto: 'Técnico',
-      estado: 'Activo',
-      avatar: 'MR',
-      colorAvatar: 'bg-gradient-to-br from-green-400 to-green-600'
-    }
-  ];
+      try {
+        const [usuariosResponse, rolesResponse] = await Promise.all([
+          api.get('usuarios'),
+          api.get('roles')
+        ]);
 
-  const usuario = id ? usuarios.find(u => u.id === id) || usuarioActual : usuarioActual;
+        setUsuarios(Array.isArray(usuariosResponse) ? usuariosResponse : []);
+        setRoles(Array.isArray(rolesResponse) ? rolesResponse : []);
+      } catch (e) {
+        setError('No se pudo cargar la información del perfil.');
+        setUsuarios([]);
+        setRoles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarUsuarios();
+  }, []);
+
+  const usuario = useMemo(() => {
+    const idObjetivo = id || getUserIdFromToken();
+    const registro = idObjetivo
+      ? usuarios.find((u) => String(u.id_usuario) === String(idObjetivo))
+      : usuarios[0];
+
+    if (!registro) return null;
+
+    const nombreCompleto = [registro.nombre_usuario, registro.apellido_paterno, registro.apellido_materno]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const iniciales = [registro.nombre_usuario?.[0], registro.apellido_paterno?.[0]]
+      .filter(Boolean)
+      .join('')
+      .toUpperCase();
+
+    return {
+      id: String(registro.id_usuario),
+      nombre_completo: nombreCompleto || `Usuario #${registro.id_usuario}`,
+      correo_usuario: registro.correo || '-',
+      telefono_usuario: registro.telefono || '-',
+      fecha_registro_usuario: registro.fecha_registro,
+      rol: registro.rol || 'Sin rol',
+      descripcion_rol:
+        roles.find((r) => String(r.nombre).toLowerCase() === String(registro.rol || '').toLowerCase())?.descripcion ||
+        'Sin descripción de rol disponible.',
+      puesto: registro.puesto || 'Sin puesto',
+      estado: registro.activo ? 'Activo' : 'Inactivo',
+      avatar: iniciales || 'US',
+      colorAvatar: 'bg-gradient-to-br from-blue-500 to-cyan-600'
+    };
+  }, [usuarios, roles, id]);
 
   const formatearFecha = (fecha) => {
+    if (!fecha) return '-';
     const date = new Date(fecha);
+    if (Number.isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
@@ -97,6 +113,26 @@ const Perfil = () => {
 
   return (
     <div className="space-y-6">
+      {loading && (
+        <div className={`rounded-lg border p-4 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+          Cargando perfil...
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && !usuario && (
+        <div className={`rounded-lg border p-4 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+          No hay información de usuario para mostrar.
+        </div>
+      )}
+
+      {!loading && !error && usuario && (
+      <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -271,7 +307,7 @@ const Perfil = () => {
                 Auditorías completadas
               </p>
               <p className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                12
+                {usuarios.filter((u) => u.id_usuario === Number(usuario.id)).length > 0 ? 1 : 0}
               </p>
             </div>
             <div className={`p-3 rounded-lg ${isDark ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
@@ -279,64 +315,30 @@ const Perfil = () => {
                 Activos revisados
               </p>
               <p className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                156
+                {usuarios.length}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Permisos */}
+        {/* Descripción del rol */}
         <div className={`rounded-lg border p-6 transition ${
           isDark 
             ? 'bg-slate-800 border-slate-700' 
             : 'bg-white border-slate-200'
         }`}>
           <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-            Permisos y Accesos
+            Descripción del Rol
           </h3>
-          <div className="space-y-2">
-            {usuario.rol === 'Administrador' && (
-              <>
-                <PermisoItem isDark={isDark} permiso="Gestión completa de usuarios" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Configuración del sistema" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Generación de reportes" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Gestión de auditorías" activo={true} />
-              </>
-            )}
-            {usuario.rol === 'Auditor' && (
-              <>
-                <PermisoItem isDark={isDark} permiso="Realizar auditorías" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Generación de reportes" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Consultar activos" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Gestión de usuarios" activo={false} />
-              </>
-            )}
-            {usuario.rol === 'Usuario' && (
-              <>
-                <PermisoItem isDark={isDark} permiso="Consultar activos" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Escanear QR" activo={true} />
-                <PermisoItem isDark={isDark} permiso="Realizar auditorías" activo={false} />
-                <PermisoItem isDark={isDark} permiso="Gestión de usuarios" activo={false} />
-              </>
-            )}
-          </div>
+          <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+            {usuario.descripcion_rol}
+          </p>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
-
-const PermisoItem = ({ isDark, permiso, activo }) => (
-  <div className="flex items-center gap-2">
-    <div className={`w-2 h-2 rounded-full ${activo ? 'bg-green-500' : 'bg-slate-400'}`}></div>
-    <span className={`text-sm ${
-      isDark 
-        ? activo ? 'text-slate-300' : 'text-slate-500' 
-        : activo ? 'text-slate-700' : 'text-slate-400'
-    }`}>
-      {permiso}
-    </span>
-  </div>
-);
 
 export default Perfil;

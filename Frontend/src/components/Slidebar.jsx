@@ -1,12 +1,70 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useEffect, useMemo, useState } from 'react';
 import OphiraLogo from '../assets/OphiraLogo.png';
-import { clearToken } from '../services/authStorage';
+import { clearToken, getToken } from '../services/authStorage';
+import { api } from '../services/api';
 
 const Slidebar = () => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const [usuarioSidebar, setUsuarioSidebar] = useState(null);
+
+  const obtenerIdUsuarioDesdeToken = () => {
+    try {
+      const token = getToken();
+      if (!token) return null;
+
+      const payloadPart = token.split('.')[1];
+      if (!payloadPart) return null;
+
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      const id = Number(payload?.id);
+      return Number.isFinite(id) ? id : null;
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const cargarUsuario = async () => {
+      const idUsuario = obtenerIdUsuarioDesdeToken();
+      if (!idUsuario) {
+        setUsuarioSidebar(null);
+        return;
+      }
+
+      try {
+        const usuario = await api.get(`usuarios/${idUsuario}`);
+        setUsuarioSidebar(usuario);
+      } catch (error) {
+        console.error('No se pudo cargar el usuario del sidebar:', error);
+        setUsuarioSidebar(null);
+      }
+    };
+
+    cargarUsuario();
+  }, []);
+
+  const nombreMostrado = useMemo(() => {
+    const nombre = String(usuarioSidebar?.nombre_usuario || '').trim();
+    const apPaterno = String(usuarioSidebar?.apellido_paterno || '').trim();
+    const apMaterno = String(usuarioSidebar?.apellido_materno || '').trim();
+    const nombreCompleto = [nombre, apPaterno, apMaterno].filter(Boolean).join(' ').trim();
+    return nombreCompleto || 'Usuario';
+  }, [usuarioSidebar]);
+
+  const correoMostrado = useMemo(() => {
+    const correo = String(usuarioSidebar?.correo || '').trim();
+    return correo || 'correo@ejemplo.com';
+  }, [usuarioSidebar]);
+
+  const inicialAvatar = useMemo(() => {
+    const inicial = String(usuarioSidebar?.nombre_usuario || '').trim().charAt(0).toUpperCase();
+    return inicial || 'U';
+  }, [usuarioSidebar]);
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-lg mx-3 mb-1 ${
@@ -76,11 +134,11 @@ const Slidebar = () => {
           }`}
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-            A
+            {inicialAvatar}
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-medium truncate ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>Nombre Usuario</p>
-            <p className={`text-xs truncate ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>correo@gmail.com</p>
+            <p className={`text-sm font-medium truncate ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>{nombreMostrado}</p>
+            <p className={`text-xs truncate ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>{correoMostrado}</p>
           </div>
         </div>
         <button 

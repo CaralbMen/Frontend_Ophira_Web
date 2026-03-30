@@ -141,7 +141,7 @@ const Dashboard = () => {
     }
   ];
 
-  const actividades = activos.slice(0, 8).map((activo) => ({
+  const actividades = activos.slice(0, 6).map((activo) => ({
     nombre: activo.nombre,
     codigo: activo.id_activo,
     estado: activo.estado,
@@ -371,52 +371,6 @@ const Dashboard = () => {
                     {operationStatus.message}
                   </div>
                 )}
-
-                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <select
-                    value={selectedEdificio}
-                    onChange={(event) => handleSelectEdificio(event.target.value)}
-                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
-                  >
-                    <option value="">Selecciona edificio</option>
-                    {edificios.map((edificio) => (
-                      <option key={edificio.id_edificio} value={edificio.id_edificio}>{edificio.nombre}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedPiso}
-                    onChange={(event) => handleSelectPiso(event.target.value)}
-                    disabled={!selectedEdificio}
-                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
-                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
-                  >
-                    <option value="">Selecciona piso</option>
-                    {pisosXedificio.map((piso) => (
-                      <option key={piso.id_piso} value={piso.id_piso}>Piso {piso.numero_piso}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedAula}
-                    onChange={(event) => setSelectedAula(event.target.value)}
-                    disabled={!selectedPiso}
-                    className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
-                      isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
-                  >
-                    <option value="">Selecciona aula</option>
-                    {aulasXpiso.map((aula) => (
-                      <option key={aula.id_aula ?? aula.numero_aula} value={aula.id_aula ?? aula.numero_aula}>
-                        {aula.numero_aula} ({aula.tipo ?? 'Aula'})
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
-
                 <div className="flex items-center gap-2">
                   <button
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
@@ -830,7 +784,7 @@ const Dashboard = () => {
             <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Actividad Reciente</h2>
             <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">Ver Todo</button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-[28rem] overflow-auto">
             <table className="w-full">
               <thead className={`border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                 <tr>

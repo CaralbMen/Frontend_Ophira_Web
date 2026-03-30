@@ -1,7 +1,9 @@
 import { FileText, Download, TrendingUp, CheckCircle, AlertCircle, DollarSign, MoreVertical } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const toNumber = (value) => {
   const parsed = Number(value ?? 0);
@@ -22,7 +24,7 @@ const formatearFecha = (fecha) => {
 
 const Reportes = () => {
   const { isDark } = useTheme();
-  const [dateRange, setDateRange] = useState('30 dias');
+  const [dateRange, setDateRange] = useState('30');
   const [reporteData, setReporteData] = useState({
     total_activos: '0',
     bienes_activos: '0',
@@ -68,10 +70,22 @@ const Reportes = () => {
     cargarDatosReporte();
   }, []);
 
-  const totalActivos = toNumber(reporteData.total_activos);
-  const bienesActivos = toNumber(reporteData.bienes_activos);
-  const enMantenimiento = toNumber(reporteData.activos_en_mantenimiento);
-  const aniadidosRecientes = toNumber(reporteData.aniadidos_recientemente);
+  const activosFiltradosPorRango = useMemo(() => {
+    const dias = Number(dateRange || 30);
+    const ahora = new Date();
+    const msRango = dias * 24 * 60 * 60 * 1000;
+
+    return activos.filter((activo) => {
+      const fecha = new Date(activo.fecha_registro);
+      if (Number.isNaN(fecha.getTime())) return false;
+      return (ahora.getTime() - fecha.getTime()) <= msRango;
+    });
+  }, [activos, dateRange]);
+
+  const totalActivos = activosFiltradosPorRango.length || toNumber(reporteData.total_activos);
+  const bienesActivos = activosFiltradosPorRango.filter((a) => String(a.estado).toLowerCase() === 'activo').length || toNumber(reporteData.bienes_activos);
+  const enMantenimiento = activosFiltradosPorRango.filter((a) => String(a.estado).toLowerCase() === 'mantenimiento').length || toNumber(reporteData.activos_en_mantenimiento);
+  const aniadidosRecientes = activosFiltradosPorRango.length || toNumber(reporteData.aniadidos_recientemente);
   const valorTotal = toNumber(reporteData.valor_total);
   const retirados = Math.max(totalActivos - bienesActivos - enMantenimiento, 0);
 
@@ -127,7 +141,7 @@ const Reportes = () => {
 
   const maxValue = Math.max(...acquisitionData.map(d => d.value), 1);
 
-  const recentActivities = activos.slice(0, 10).map((activo) => ({
+  const recentActivities = activosFiltradosPorRango.slice(0, 10).map((activo) => ({
     activo: activo.nombre,
     responsable: activo.responsable,
     id: activo.id_activo,
@@ -173,6 +187,53 @@ const Reportes = () => {
     return colors[color];
   };
 
+  const exportarPdfReporte = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const fechaActual = new Date().toLocaleDateString('es-MX');
+    const rangoTexto = dateRange === '30' ? 'Tras 30 dias' : dateRange === '90' ? 'Tras 90 dias' : 'Tras 1 anio';
+
+    doc.setFontSize(16);
+    doc.text('Reporte de Activos', 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Fecha de generacion: ${fechaActual}`, 40, 60);
+    doc.text(`Rango aplicado: ${rangoTexto}`, 260, 60);
+
+    doc.setFontSize(11);
+    doc.text(`Total de Activos: ${totalActivos}`, 40, 90);
+    doc.text(`Bienes Activos: ${bienesActivos}`, 220, 90);
+    doc.text(`Mantenimiento: ${enMantenimiento}`, 400, 90);
+    doc.text(`Valor Total: ${moneyMx.format(valorTotal)}`, 560, 90);
+
+    autoTable(doc, {
+      startY: 110,
+      head: [['Estado', 'Porcentaje']],
+      body: statusDistribution.map((item) => [item.label, `${item.value.toFixed(1)}%`]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [37, 99, 235] },
+      tableWidth: 260,
+      margin: { left: 40 },
+    });
+
+    autoTable(doc, {
+      startY: 110,
+      head: [['Activo', 'Categoria', 'Responsable', 'Estado', 'Ultima vista', 'Accion']],
+      body: recentActivities.map((item) => [
+        item.activo,
+        item.categoria,
+        item.responsable,
+        item.estado,
+        `${item.fecha} - ${item.ubicacion}`,
+        item.accion,
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+      margin: { left: 320 },
+      tableWidth: 470,
+    });
+
+    doc.save(`reporte_activos_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -192,11 +253,13 @@ const Reportes = () => {
                 : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
-            <option>Tras 30 días</option>
-            <option>Tras 90 días</option>
-            <option>Tras 1 año</option>
+            <option value="30">Tras 30 días</option>
+            <option value="90">Tras 90 días</option>
+            <option value="365">Tras 1 año</option>
           </select>
-          <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${
+          <button
+            onClick={exportarPdfReporte}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${
             isDark
               ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -373,7 +436,7 @@ const Reportes = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
             <thead className={`border-b ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
               <tr>
@@ -435,6 +498,13 @@ const Reportes = () => {
                   </td>
                 </tr>
               ))}
+              {recentActivities.length === 0 && (
+                <tr>
+                  <td colSpan={6} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    No hay actividad registrada para el rango seleccionado.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

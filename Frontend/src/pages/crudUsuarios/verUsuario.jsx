@@ -85,7 +85,7 @@ const VerUsuario = () => {
     const cargarUsuario = async () => {
       if (id) {
         try {
-          const usuarioResponse = await api.get(`usuario/${id}`);
+          const usuarioResponse = await api.get(`usuarios/${id}`);
           setFormData(mapUsuarioToForm(usuarioResponse));
           return;
         } catch (error) {
@@ -165,16 +165,38 @@ const VerUsuario = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (modo === 'crear') {
       console.log('Crear usuario:', formData);
+      navigate(-1);
     } else if (modo === 'editar') {
-      console.log('Actualizar usuario:', formData);
+      const usuarioId = id || usuarioExistente?.id_usuario;
+
+      if (!usuarioId) {
+        console.error('No se encontro id para actualizar usuario');
+        return;
+      }
+
+      const payload = {
+        nombre_usuario: formData.nombre_usuario.trim(),
+        apellido_paterno: formData.apaterno_usuario.trim(),
+        apellido_materno: formData.amaterno_usuario.trim(),
+        correo: formData.correo_usuario.trim(),
+        telefono: formData.telefono_usuario.trim(),
+        id_rol: formData.FK_id_rol,
+        id_puesto: formData.FK_id_puesto,
+        activo: Boolean(formData.activo_usuario),
+      };
+
+      try {
+        await api.put(`usuarios/${usuarioId}`, payload);
+        navigate(-1);
+      } catch (error) {
+        console.error('Error al actualizar usuario:', error);
+      }
     }
-    
-    navigate(-1);
   };
 
   const handleEliminar = () => {
@@ -598,7 +620,7 @@ const VerUsuario = () => {
                 >
                   <option value="">Seleccionar puesto</option>
                   {puestos.map(puesto => (
-                    <option key={puesto.id_puesto} value={puesto.id_puesto}>{puesto.nombre}</option>
+                    <option key={puesto.id_puesto} value={puesto.id_puesto}>{puesto.nombre} - {puesto.nombre_area}</option>
                   ))}
                 </select>
               </div>

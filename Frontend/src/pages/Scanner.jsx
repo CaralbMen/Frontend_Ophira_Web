@@ -3,22 +3,105 @@ import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 import  {api} from '../services/api';
+import { getToken } from '../services/authStorage';
+import { useNavigate } from 'react-router-dom';
+
+const capitalizarPrimera = (valor) => {
+  const limpio = String(valor || '').trim();
+  if (!limpio) return '';
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1).toLowerCase();
+};
+
 const Scanner = () => {
+  
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [cameraActive, setCameraActive] = useState(true);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [codigoDetectado, setCodigoDetectado] = useState('');
   const [codigoManual, setCodigoManual] = useState('');
   const [assetData, setAssetData] = useState({});
+  const [movimientos, setMovimientos] = useState([]);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
   const rafRef = useRef(null);
   const canvasRef = useRef(null);
 
+  const obtenerIdUsuarioDesdeToken = () => {
+    try {
+      const token = getToken();
+      if (!token) return null;
+
+      const payloadPart = token.split('.')[1];
+      if (!payloadPart) return null;
+
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = JSON.parse(window.atob(base64));
+      const id = Number(decoded?.id);
+      return Number.isFinite(id) ? id : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const cargarEscaneosRecientes = async () => {
+    try {
+      const response = await api.get('movimientos/tipo/escaneo');
+      const data = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+
+      const escaneos = data.slice(0, 5).map((mov) => ({
+        id_movimiento: mov.id_movimiento,
+        id_activo: mov.id_activo,
+        nombre: mov.nombre_activo || `Activo #${mov.id_activo}`,
+        estado: capitalizarPrimera(mov.tipo_movimiento),
+        tipo: mov.nombre_usuario || `Usuario #${mov.id_usuario}`,
+        id_aula: new Date(mov.fecha_movimiento).toLocaleTimeString('es-MX', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      }));
+
+      setMovimientos(escaneos);
+    } catch (error) {
+      console.error('Error al cargar escaneos recientes:', error);
+      setMovimientos([]);
+    }
+  };
+
+  const registrarEscaneoMovimiento = async (activo) => {
+    const idActivo = Number(activo?.id_activo);
+    if (!Number.isFinite(idActivo)) return;
+
+    const idUsuarioToken = obtenerIdUsuarioDesdeToken();
+    const idUsuarioActivo = Number(activo?.id_usuario);
+    const idUsuario = Number.isFinite(idUsuarioToken) ? idUsuarioToken : (Number.isFinite(idUsuarioActivo) ? idUsuarioActivo : null);
+
+    if (!idUsuario) return;
+
+    try {
+      await api.post('movimientos', {
+        tipo_movimiento: 'Escaneo',
+        fecha_movimiento: new Date().toISOString(),
+        descripcion: `Escaneo de activo #${idActivo}`,
+        id_usuario: idUsuario,
+        id_activo: idActivo,
+      });
+      await cargarEscaneosRecientes();
+    } catch (error) {
+      console.error('No se pudo registrar movimiento de escaneo:', error);
+    }
+  };
+
   useEffect(()=>{
+
       if(codigoDetectado){
+        
         const fetchAsset= async()=>{
           try {
             const idBuscado = String(codigoDetectado).trim();
@@ -33,8 +116,10 @@ const Scanner = () => {
             
             if (Array.isArray(response) && response.length > 0) {
               setAssetData(response[0]);
+              await registrarEscaneoMovimiento(response[0]);
             } else if (response && typeof response === 'object') {
               setAssetData(response);
+              await registrarEscaneoMovimiento(response);
             } else {
               setAssetData({});
             }
@@ -202,35 +287,9 @@ const Scanner = () => {
     };
   }, [cameraActive]);
 
-  const currentAsset = {
-    nombre: 'Dell Precision 5570',
-    id: '12345',
-    categoria: 'Tecnología',
-    encargado: 'Ricardo Veledíaz',
-    estado: 'Activo',
-    historial: 'Activo',
-  };
-
-  const recentScans = [
-    {
-      nombre: 'HP LaserJet Pro',
-      id: '12346',
-      tiempo: '10:32 AM',
-      estado: 'Mantenimiento',
-    },
-    {
-      nombre: 'Herman Miller Aeron',
-      id: '12347',
-      tiempo: '10:30 AM',
-      estado: 'Activo',
-    },
-    {
-      nombre: 'HP LaserJet Pro',
-      id: '12348',
-      tiempo: '06:48 AM',
-      estado: 'Mantenimiento',
-    },
-  ];
+  useEffect(() => {
+    cargarEscaneosRecientes();
+  }, []);
 
   const activoSeleccionado = assetData ?? {};
   const estadoColorClass = {
@@ -402,7 +461,7 @@ const Scanner = () => {
               </div>
             </div>
 
-            <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mb-2">
+            <button onClick={()=> navigate(`/activos/editar/${assetData?.id_activo}`)} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mb-2">
               Ver Detalles
             </button>
 
@@ -419,42 +478,54 @@ const Scanner = () => {
           <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
             isDark ? 'text-slate-400' : 'text-slate-500'
           }`}>
-            RECIENTES
+            ESCANEOS RECIENTES
           </h3>
 
           <div className="space-y-2">
-            {recentScans.map((scan, index) => (
-              <div
-                key={index}
-                className={`rounded-lg border p-3 cursor-pointer transition ${
-                  isDark 
-                    ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' 
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <Package size={14} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
-                    <h5 className={`font-medium text-sm ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      {scan.nombre}
-                    </h5>
+            {movimientos.length > 0 ? (
+              movimientos.map((mov, index) => (
+                <div
+                  key={index}
+                  className={`rounded-lg border p-3 cursor-pointer transition ${
+                    isDark 
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' 
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Package size={14} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
+                      <h5 className={`font-medium text-sm ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {mov.nombre}
+                      </h5>
+                    </div>
+                    <span className={`text-xs ${
+                      String(mov.estado).toLowerCase() === 'escaneo' ? 'text-blue-600' : 'text-yellow-600'
+                    }`}>
+                      {mov.estado}
+                    </span>
                   </div>
-                  <span className={`text-xs ${
-                    scan.estado === 'Activo' ? 'text-green-600' : 'text-yellow-600'
-                  }`}>
-                    {scan.estado}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      ID: {mov.id_activo}
+                    </p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {mov.tipo} {mov.id_aula}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {scan.id}
-                  </p>
-                  <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {scan.tiempo}
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className={`rounded-lg border p-3 text-center ${
+                isDark 
+                  ? 'bg-slate-800 border-slate-700' 
+                  : 'bg-white border-slate-200'
+              }`}>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  No hay escaneos registrados
+                </p>
               </div>
-            ))}
+            )}
             <button className={`w-full py-2 rounded-lg text-xs font-medium transition ${
               isDark
                 ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'

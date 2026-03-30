@@ -2,7 +2,7 @@ import { Search, Plus, Download, Edit, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {api} from '../services/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const formatearFecha = (fecha) => {
   if (!fecha) return '';
@@ -14,6 +14,10 @@ const Activos = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const [activos, setActivos]= useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todas');
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState('todos');
   // Datos de ejemplo
   // const activos = [
   //   {
@@ -147,6 +151,48 @@ const Activos = () => {
     }
     obtenerActivos();
   }, []);
+
+  useEffect(() => {
+    const obtenerCategorias = async () => {
+      try {
+        const response = await api.get('categorias');
+        setCategorias(Array.isArray(response) ? response : []);
+      } catch (e) {
+        console.error('Error al obtener categorias:', e);
+        setCategorias([]);
+      }
+    };
+
+    obtenerCategorias();
+  }, []);
+
+  const estadosDisponibles = useMemo(() => {
+    const unicos = Array.from(new Set(activos.map((a) => a.estado).filter(Boolean)));
+    return ['todos', ...unicos];
+  }, [activos]);
+
+  const activosFiltrados = useMemo(() => {
+    const termino = searchTerm.trim().toLowerCase();
+
+    return activos.filter((activo) => {
+      const coincideBusqueda = !termino || [
+        String(activo.id_activo ?? ''),
+        String(activo.nombre ?? ''),
+        String(activo.responsable ?? ''),
+      ].some((valor) => valor.toLowerCase().includes(termino));
+
+      const coincideCategoria =
+        categoriaSeleccionada === 'todas' ||
+        String(activo.categoria || '').toLowerCase() === categoriaSeleccionada;
+
+      const coincideEstado =
+        estadoSeleccionado === 'todos' ||
+        String(activo.estado || '').toLowerCase() === estadoSeleccionado;
+
+      return coincideBusqueda && coincideCategoria && coincideEstado;
+    });
+  }, [activos, searchTerm, categoriaSeleccionada, estadoSeleccionado]);
+
   const getEstadoBadgeColor = (estado) => {
     switch (estado) {
       case 'Activo':
@@ -195,6 +241,8 @@ const Activos = () => {
             <input
               type="text"
               placeholder="Buscar por ID o nombre"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
                 isDark
                   ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500'
@@ -203,27 +251,41 @@ const Activos = () => {
             />
           </div>
 
-          <select className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
+          <select
+            value={categoriaSeleccionada}
+            onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+            className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
             isDark
               ? 'bg-slate-700 border-slate-600 text-slate-100'
               : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <option>Todas las categorías</option>
-            <option>Electronics</option>
-            <option>Furniture</option>
-            <option>Machinery</option>
-            <option>Vehicles</option>
+            <option value="todas">Todas las categorías</option>
+            {categorias.map((categoria) => (
+              <option
+                key={categoria.id_categoria}
+                value={String(categoria.nombre || '').toLowerCase()}
+              >
+                {categoria.nombre}
+              </option>
+            ))}
           </select>
 
-          <select className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
+          <select
+            value={estadoSeleccionado}
+            onChange={(e) => setEstadoSeleccionado(e.target.value)}
+            className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
             isDark
               ? 'bg-slate-700 border-slate-600 text-slate-100'
               : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <option>Todos los estados</option>
-            <option>Active</option>
-            <option>Mantenimiento</option>
-            <option>Retirado</option>
+            <option value="todos">Todos los estados</option>
+            {estadosDisponibles
+              .filter((estado) => estado !== 'todos')
+              .map((estado) => (
+                <option key={estado} value={String(estado).toLowerCase()}>
+                  {estado}
+                </option>
+              ))}
           </select>
         </div>
       </div>
@@ -233,7 +295,7 @@ const Activos = () => {
           ? 'bg-slate-800 border-slate-700' 
           : 'bg-white border-slate-200'
       }`}>
-        <div className="overflow-x-auto">
+        <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
             <thead className={`border-b transition ${
               isDark
@@ -265,7 +327,7 @@ const Activos = () => {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
-              {activos.map((activo) => (
+              {activosFiltrados.map((activo) => (
                 <tr key={activo.id_activo ?? activo.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-4 py-3">
                     <span className={`font-semibold text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.id_activo}</span>
@@ -273,7 +335,12 @@ const Activos = () => {
                   <td className="px-4 py-3">
                     <div>
                       <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{activo.nombre}</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable: {activo.responsable}</p>
+                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Responsable: {[
+                          [activo.responsable, activo.responsable_apellido].filter(Boolean).join(' ').trim(),
+                          [activo.responsable_puesto, activo.responsable_area].filter(Boolean).join(' de ').trim()
+                        ].filter(Boolean).join(' - ') || 'Sin responsable'}
+                      </p>
                       {Array.isArray(activo.partes) && activo.partes.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {activo.partes.map((parte) => (
@@ -327,6 +394,13 @@ const Activos = () => {
                   </td>
                 </tr>
               ))}
+              {activosFiltrados.length === 0 && (
+                <tr>
+                  <td colSpan={7} className={`px-4 py-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    No hay activos que coincidan con los filtros.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

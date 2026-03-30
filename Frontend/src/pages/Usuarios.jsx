@@ -102,7 +102,7 @@ const Usuarios = () => {
           ? 'bg-slate-800 border-slate-700' 
           : 'bg-white border-slate-200'
       }`}>
-        <div className="overflow-x-auto">
+        <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
             <thead className={`border-b transition ${
               isDark
@@ -151,7 +151,7 @@ const Usuarios = () => {
                     </div>
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {usuario.email}
+                    {usuario.correo ?? usuario.email}
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                     {usuario.telefono}
@@ -160,7 +160,7 @@ const Usuarios = () => {
                     {usuario.rol}
                   </td>
                   <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {usuario.puesto}
+                    {usuario.puesto} - {usuario.area}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-xs font-semibold ${usuario.activo ? 'text-green-600' : 'text-red-600'}`}>

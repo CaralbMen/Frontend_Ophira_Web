@@ -1,95 +1,74 @@
-import { Search, Plus, Eye } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../services/api';
 
 const Auditorias = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [auditorias, setAuditorias] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('Todas');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Datos de ejemplo
-  const auditorias = [
-    {
-      id: 'AUD-2023-001',
-      usuario: {
-        nombre: 'Elena García',
-        rol: 'Supervisor',
-        avatar: 'EG'
-      },
-      fecha: '25 Oct, 2023',
-      hora: '10:30 AM',
-      estado: 'completada'
-    },
-    {
-      id: 'AUD-2023-002',
-      usuario: {
-        nombre: 'Roberto Sanz',
-        rol: 'Auditor Interno',
-        avatar: 'RS'
-      },
-      fecha: '25 Oct, 2023',
-      hora: '11:45 AM',
-      estado: 'progreso'
-    },
-    {
-      id: 'AUD-2023-003',
-      usuario: {
-        nombre: 'Carla Méndez',
-        rol: 'Inventario',
-        avatar: 'CM'
-      },
-      fecha: '24 Oct, 2023',
-      hora: '09:15 AM',
-      estado: 'completada'
-    },
-    {
-      id: 'AUD-2023-004',
-      usuario: {
-        nombre: 'Miguel Torres',
-        rol: 'Auditor Junior',
-        avatar: 'MT'
-      },
-      fecha: '24 Oct, 2023',
-      hora: '04:20 PM',
-      estado: 'pendiente'
-    },
-    {
-      id: 'AUD-2023-005',
-      usuario: {
-        nombre: 'Ana Martínez',
-        rol: 'Supervisor',
-        avatar: 'AM'
-      },
-      fecha: '23 Oct, 2023',
-      hora: '02:30 PM',
-      estado: 'completada'
-    },
-    {
-      id: 'AUD-2023-006',
-      usuario: {
-        nombre: 'Luis Hernández',
-        rol: 'Auditor Interno',
-        avatar: 'LH'
-      },
-      fecha: '23 Oct, 2023',
-      hora: '08:45 AM',
-      estado: 'progreso'
-    },
-  ];
+  useEffect(() => {
+    const cargarAuditorias = async () => {
+      setLoading(true);
+      setError('');
 
-  const auditoriasFiltradas = auditorias;
+      try {
+        const response = await api.get('auditorias');
+        const rows = Array.isArray(response?.rows) ? response.rows : [];
+        setAuditorias(rows);
+      } catch (e) {
+        setError('No se pudieron cargar las auditorías.');
+        setAuditorias([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const getColorAvatar = (index) => {
-    const colores = [
-      'bg-blue-600',
-      'bg-purple-600',
-      'bg-green-600',
-      'bg-orange-600',
-      'bg-pink-600',
-      'bg-teal-600'
-    ];
-    return colores[index % colores.length];
-  };
+    cargarAuditorias();
+  }, []);
+
+  const auditoriasFiltradas = useMemo(() => {
+    const termino = searchTerm.trim().toLowerCase();
+    const now = new Date();
+
+    return auditorias.filter((auditoria) => {
+      const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
+      const fecha = fechaRaw ? new Date(fechaRaw) : null;
+
+      const coincideTermino = !termino || [
+        String(auditoria.id_auditoria ?? ''),
+        String(auditoria.nombre_usuario ?? ''),
+        String(auditoria.nombre ?? ''),
+        String(auditoria.apellido_paterno ?? ''),
+        String(auditoria.apellido_materno ?? ''),
+      ].join(' ').toLowerCase().includes(termino);
+
+      if (!coincideTermino) {
+        return false;
+      }
+
+      if (dateFilter === 'Todas' || !fecha || Number.isNaN(fecha.getTime())) {
+        return true;
+      }
+
+      if (dateFilter === 'Esta semana') {
+        const diffDays = (now.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays <= 7;
+      }
+
+      if (dateFilter === 'Este mes') {
+        return fecha.getMonth() === now.getMonth() && fecha.getFullYear() === now.getFullYear();
+      }
+
+      return true;
+    });
+  }, [auditorias, searchTerm, dateFilter]);
 
   return (
     <div className="space-y-4">
@@ -122,6 +101,8 @@ const Auditorias = () => {
             <input
               type="text"
               placeholder="Buscar por ID de auditoría o nombre de usuario..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
                 isDark
                   ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500'
@@ -132,11 +113,15 @@ const Auditorias = () => {
 
           {/* Filtro de fecha */}
           <div className="flex gap-2">
-            <select className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
               isDark
                 ? 'bg-slate-700 border-slate-600 text-slate-100'
                 : 'bg-white border-slate-200 text-slate-900'
             }`}>
+              <option>Todas</option>
               <option>Esta semana</option>
               <option>Este mes</option>
             </select>
@@ -151,7 +136,7 @@ const Auditorias = () => {
           ? 'bg-slate-800 border-slate-700' 
           : 'bg-white border-slate-200'
       }`}>
-        <div className="overflow-x-auto">
+        <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
             <thead className={`border-b transition ${
               isDark
@@ -177,37 +162,70 @@ const Auditorias = () => {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
-              {auditoriasFiltradas.map((auditoria, index) => (
-                <tr key={auditoria.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+              {loading && (
+                <tr>
+                  <td colSpan={5} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    Cargando auditorías...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && error && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-6 text-sm text-red-600">
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && auditoriasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={5} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    No hay auditorías para mostrar.
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && auditoriasFiltradas.map((auditoria) => {
+                const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
+                const fecha = fechaRaw ? new Date(fechaRaw) : null;
+                const nombreCompleto = [auditoria.nombre, auditoria.apellido_paterno, auditoria.apellido_materno]
+                  .filter(Boolean)
+                  .join(' ')
+                  .trim();
+
+                return (
+                <tr key={auditoria.id_auditoria} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-6 py-4">
                     <span className="text-blue-600 font-semibold text-sm hover:text-blue-700 cursor-pointer">
-                      {auditoria.id}
+                      #{auditoria.id_auditoria}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {/* <div className={`w-10 h-10 rounded-full ${getColorAvatar(index)} flex items-center justify-center text-white text-sm font-semibold`}>
-                        {auditoria.usuario.avatar}
-                      </div> */}
                       <div>
                         <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {auditoria.usuario.nombre}
+                          {auditoria.nombre_usuario || nombreCompleto || `Usuario #${auditoria.id_usuario_auditor}`}
                         </p>
                         <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {auditoria.usuario.rol}
+                          Estado: {auditoria.estado_general || 'Sin definir'}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {auditoria.fecha}
+                    {fecha && !Number.isNaN(fecha.getTime())
+                      ? fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                      : '-'}
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {auditoria.hora}
+                    {fecha && !Number.isNaN(fecha.getTime())
+                      ? fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                      : '-'}
                   </td>
                   <td className="px-6 py-4">
                     <button 
-                      onClick={() => navigate(`/auditorias/${auditoria.id}`)}
+                      onClick={() => navigate(`/auditorias/${auditoria.id_auditoria}`)}
                       className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition"
                     >
                       Ver Detalles
@@ -215,7 +233,7 @@ const Auditorias = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
