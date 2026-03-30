@@ -157,6 +157,12 @@ const Auditorias = () => {
                   Hora
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Aula
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Estado
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   Acciones
                 </th>
               </tr>
@@ -164,7 +170,7 @@ const Auditorias = () => {
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {loading && (
                 <tr>
-                  <td colSpan={5} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <td colSpan={7} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Cargando auditorías...
                   </td>
                 </tr>
@@ -172,7 +178,7 @@ const Auditorias = () => {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-6 text-sm text-red-600">
+                  <td colSpan={7} className="px-6 py-6 text-sm text-red-600">
                     {error}
                   </td>
                 </tr>
@@ -180,7 +186,7 @@ const Auditorias = () => {
 
               {!loading && !error && auditoriasFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <td colSpan={7} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     No hay auditorías para mostrar.
                   </td>
                 </tr>
@@ -189,10 +195,11 @@ const Auditorias = () => {
               {!loading && !error && auditoriasFiltradas.map((auditoria) => {
                 const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
                 const fecha = fechaRaw ? new Date(fechaRaw) : null;
-                const nombreCompleto = [auditoria.nombre, auditoria.apellido_paterno, auditoria.apellido_materno]
+                const nombreCompleto = [auditoria.nombre_usuario || auditoria.nombre, auditoria.apellido_paterno]
                   .filter(Boolean)
                   .join(' ')
                   .trim();
+                const puestoArea = [auditoria.puesto, auditoria.area].filter(Boolean).join(' de ');
 
                 return (
                 <tr key={auditoria.id_auditoria} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
@@ -205,10 +212,10 @@ const Auditorias = () => {
                     <div className="flex items-center gap-3">
                       <div>
                         <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {auditoria.nombre_usuario || nombreCompleto || `Usuario #${auditoria.id_usuario_auditor}`}
+                          {nombreCompleto || `Usuario #${auditoria.id_usuario_auditor}`}
                         </p>
                         <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          Estado: {auditoria.estado_general || 'Sin definir'}
+                          {puestoArea || '-'}
                         </p>
                       </div>
                     </div>
@@ -222,6 +229,12 @@ const Auditorias = () => {
                     {fecha && !Number.isNaN(fecha.getTime())
                       ? fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
                       : '-'}
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {auditoria.id_aula ?? '-'}
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {auditoria.estado_general || 'Sin definir'}
                   </td>
                   <td className="px-6 py-4">
                     <button 

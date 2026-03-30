@@ -43,11 +43,13 @@ const DetallesAuditoria = () => {
   }, [id]);
 
   const activosNormalizados = useMemo(() => {
-    if (!auditoria?.estados_activos) {
+    const estadosFuente = auditoria?.estados_activos ?? auditoria?.EstadosActivos ?? auditoria?.estadosActivos;
+
+    if (!estadosFuente) {
       return [];
     }
 
-    let estados = auditoria.estados_activos;
+    let estados = estadosFuente;
     if (typeof estados === 'string') {
       try {
         estados = JSON.parse(estados);
@@ -56,47 +58,78 @@ const DetallesAuditoria = () => {
       }
     }
 
-    if (Array.isArray(estados)) {
-      return estados.map((item, index) => ({
-        id: item.id_activo ?? item.id ?? index + 1,
-        nombre: item.nombre_activo ?? item.nombre ?? `Activo ${index + 1}`,
-        categoria: item.categoria ?? '-',
+    const normalizarDesdeEntrada = (id, rawValue, index = 0) => {
+      let value = rawValue;
+      if (typeof value === 'string') {
+        try {
+          value = JSON.parse(value);
+        } catch {
+          value = { estado: rawValue };
+        }
+      }
+
+      const tieneClave = id !== null && id !== undefined && String(id).trim() !== '';
+      const claveNormalizada = tieneClave ? String(id).trim() : null;
+      const keyEsNumerica = Boolean(claveNormalizada && /^\d+$/.test(claveNormalizada));
+      const idActivo = keyEsNumerica
+        ? claveNormalizada
+        : (value?.id_activo ?? value?.idActivo ?? value?.id ?? null);
+      const nombreFallbackDesdeClave = !keyEsNumerica && typeof id === 'string' ? id : null;
+
+      const estado = value?.estado ?? value?.estado_activo ?? value?.estadoActivo ?? value?.estado_verificacion ?? 'Sin estado';
+
+      return {
+        claveObjeto: claveNormalizada,
+        id: idActivo,
+        nombre: value?.nombre_activo ?? value?.nombre ?? nombreFallbackDesdeClave ?? `Activo ${index + 1}`,
+        categoria: value?.categoria ?? '-',
+        responsable: value?.responsable ?? 'Sin responsable',
         hallado:
-          item.hallado ??
-          item.encontrado ??
-          item.localizado ??
-          !['faltante', 'no_encontrado'].includes(String(item.estado_verificacion || '').toLowerCase()),
-        estadoActivo:
-          item.estado_activo ??
-          item.estadoActivo ??
-          item.estado_activo_nombre ??
-          item.estado ??
-          'Sin estado',
+          value?.hallado ??
+          value?.encontrado ??
+          value?.localizado ??
+          value?.ubicado ??
+          !['no encontrado', 'no_encontrado', 'faltante'].includes(String(estado).toLowerCase()),
+        estadoActivo: estado,
         colorEstado:
-          item.color ??
-          item.estado_color ??
-          item.color_estado ??
-          item.estadoActivoColor ??
+          value?.color ??
+          value?.estado_color ??
+          value?.color_estado ??
+          value?.estadoActivoColor ??
           null,
         observaciones:
-          item.observaciones ??
-          item.observacion ??
-          item.comentario ??
+          value?.observaciones ??
+          value?.observacion ??
+          value?.comentario ??
           auditoria.observaciones ??
           'Sin observaciones'
-      }));
+      };
+    };
+
+    if (Array.isArray(estados)) {
+      const entradas = [];
+
+      estados.forEach((item, index) => {
+        if (!item || typeof item !== 'object') {
+          entradas.push([null, item, index]);
+          return;
+        }
+
+        if ('estado' in item || 'id_activo' in item || 'id' in item) {
+          entradas.push([item.id_activo ?? item.id ?? null, item, index]);
+          return;
+        }
+
+        Object.entries(item).forEach(([key, value]) => {
+          entradas.push([key, value, index]);
+        });
+      });
+
+      return entradas.map(([idEntry, valueEntry, index]) => normalizarDesdeEntrada(idEntry, valueEntry, index));
     }
 
     if (estados && typeof estados === 'object') {
-      return Object.entries(estados).map(([key, value]) => ({
-        id: key,
-        nombre: `Activo ${key}`,
-        categoria: '-',
-        hallado: String(value).toLowerCase() !== 'faltante',
-        estadoActivo: String(value),
-        colorEstado: null,
-        observaciones: auditoria.observaciones ?? 'Sin observaciones'
-      }));
+      return Object.entries(estados).map(([key, value], index) => normalizarDesdeEntrada(key, value, index));
     }
 
     return [];
@@ -111,6 +144,17 @@ const DetallesAuditoria = () => {
     const fecha = new Date(raw);
     if (Number.isNaN(fecha.getTime())) return '-';
     return fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  }, [auditoria]);
+
+  const auditorNombreCompleto = useMemo(() => {
+    return [auditoria?.nombre_usuario || auditoria?.nombre, auditoria?.apellido_paterno]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || `Usuario #${auditoria?.id_usuario_auditor ?? '-'}`;
+  }, [auditoria]);
+
+  const auditorPuestoArea = useMemo(() => {
+    return [auditoria?.puesto, auditoria?.area].filter(Boolean).join(' de ') || '-';
   }, [auditoria]);
 
   const getEstadoColor = (estado) => {
@@ -164,8 +208,7 @@ const DetallesAuditoria = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
     const auditorNombre =
-      auditoria.nombre_usuario ||
-      [auditoria.nombre, auditoria.apellido_paterno, auditoria.apellido_materno].filter(Boolean).join(' ') ||
+      [auditoria.nombre_usuario || auditoria.nombre, auditoria.apellido_paterno].filter(Boolean).join(' ') ||
       `Usuario #${auditoria.id_usuario_auditor}`;
 
     doc.setFontSize(16);
@@ -188,7 +231,7 @@ const DetallesAuditoria = () => {
       startY: 146,
       head: [['ID Activo', 'Nombre', 'Categoria', 'Hallado', 'Estado del Activo', 'Observaciones']],
       body: activosNormalizados.map((activo) => [
-        String(activo.id ?? '-'),
+        String((activo.claveObjeto && /^\d+$/.test(String(activo.claveObjeto)) ? activo.claveObjeto : activo.id) ?? '-'),
         activo.nombre || '-',
         activo.categoria || '-',
         activo.hallado ? 'Si' : 'No',
@@ -287,7 +330,10 @@ const DetallesAuditoria = () => {
             <div className="flex items-center gap-2">
               <User size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
               <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {auditoria.nombre_usuario || [auditoria.nombre, auditoria.apellido_paterno, auditoria.apellido_materno].filter(Boolean).join(' ') || `Usuario #${auditoria.id_usuario_auditor}`}
+                {auditorNombreCompleto}
+              </p>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {auditorPuestoArea}
               </p>
             </div>
           </div>
@@ -392,12 +438,17 @@ const DetallesAuditoria = () => {
                   </tr>
                 )}
 
-                {activosNormalizados.map((activo) => (
-                  <tr key={activo.id} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                {activosNormalizados.map((activo, index) => (
+                  <tr key={activo.claveObjeto ?? activo.id ?? index} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                     <td className="px-4 py-3">
-                      <span className="text-blue-600 font-semibold text-sm hover:text-blue-700 cursor-pointer">
-                        {activo.id}
-                      </span>
+                      <div>
+                        <span className="text-blue-600 font-semibold text-sm hover:text-blue-700 cursor-pointer">
+                          {(activo.claveObjeto && /^\d+$/.test(String(activo.claveObjeto)) ? activo.claveObjeto : activo.id) ?? index + 1}
+                        </span>
+                        <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {activo.responsable || 'Sin responsable'}
+                        </p>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>
