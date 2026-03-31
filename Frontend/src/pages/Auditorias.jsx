@@ -205,14 +205,14 @@ const Auditorias = () => {
                 <tr key={auditoria.id_auditoria} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
                   <td className="px-6 py-4">
                     <span className="text-blue-600 font-semibold text-sm hover:text-blue-700 cursor-pointer">
-                      #{auditoria.id_auditoria}
+                      {auditoria.id_auditoria}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div>
                         <p className={`font-medium text-sm ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {nombreCompleto || `Usuario #${auditoria.id_usuario_auditor}`}
+                          {nombreCompleto || `Usuario ${auditoria.id_usuario_auditor}`}
                         </p>
                         <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                           {puestoArea || '-'}

@@ -74,7 +74,7 @@ const Perfil = () => {
 
     return {
       id: String(registro.id_usuario),
-      nombre_completo: nombreCompleto || `Usuario #${registro.id_usuario}`,
+      nombre_completo: nombreCompleto || `Usuario ${registro.id_usuario}`,
       correo_usuario: registro.correo || '-',
       telefono_usuario: registro.telefono || '-',
       fecha_registro_usuario: registro.fecha_registro,
@@ -281,7 +281,7 @@ const Perfil = () => {
                   <p className={`text-sm font-medium ${
                     isDark ? 'text-slate-100' : 'text-slate-900'
                   }`}>
-                    #{usuario.id}
+                    {usuario.id}
                   </p>
                 </div>
               </div>

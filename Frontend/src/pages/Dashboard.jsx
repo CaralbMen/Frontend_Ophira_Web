@@ -1,7 +1,9 @@
-import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical } from 'lucide-react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 // Usamos la api para consumir el back
 import {api} from '../services/api';
@@ -317,11 +319,94 @@ const Dashboard = () => {
     }
   };
 
+  const obtenerActivosDelDia = () => {
+    const hoy = new Date();
+    const inicioDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const finDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+
+    return activos.filter(activo => {
+      const fechaRegistro = new Date(activo.fecha_registro || activo.fecha_compra);
+      return fechaRegistro >= inicioDelDia && fechaRegistro < finDelDia;
+    });
+  };
+
+  const exportarActivosDiaAPDF = async () => {
+    const activosDia = obtenerActivosDelDia();
+    
+    if (activosDia.length === 0) {
+      window.alert('No hay activos registrados en el día de hoy.');
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const fechaHoy = new Date().toLocaleDateString('es-MX');
+      
+      pdf.setFontSize(16);
+      pdf.text('Activos del Día', 20, 20);
+      pdf.setFontSize(10);
+      pdf.text(`Fecha: ${fechaHoy}`, 20, 30);
+      pdf.text(`Total de activos: ${activosDia.length}`, 20, 37);
+
+      let yPosition = 50;
+      const pageHeight = pdf.internal.pageSize.height;
+      const maxYPosition = pageHeight - 20;
+
+      for (let i = 0; i < activosDia.length; i++) {
+        const activo = activosDia[i];
+
+        if (yPosition > maxYPosition - 40) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        // Generar QR como canvas
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, String(activo.id_activo || activo.id), {
+          width: 80,
+          margin: 1,
+        });
+
+        const qrDataUrl = canvas.toDataURL('image/png');
+
+        // Información del activo
+        pdf.setFontSize(11);
+        pdf.text(`ID: ${activo.id_activo || activo.id}`, 20, yPosition);
+        pdf.setFontSize(9);
+        pdf.text(`Nombre: ${activo.nombre || 'N/A'}`, 20, yPosition + 8);
+        pdf.text(`Aula: ${activo.aula || activo.id_aula || 'N/A'}`, 20, yPosition + 16);
+
+        // Agregar QR
+        pdf.addImage(qrDataUrl, 'PNG', 120, yPosition - 5, 25, 25);
+
+        yPosition += 35;
+      }
+
+      pdf.save(`activos_dia_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      window.alert('Error al generar el PDF. Intenta nuevamente.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
         <div className="flex items-center gap-3">
+          <button
+            onClick={exportarActivosDiaAPDF}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border transition ${
+              isDark
+                ? 'bg-blue-900/20 text-blue-300 border-blue-700 hover:bg-blue-900/40'
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+            }`}
+            type="button"
+            title="Exportar activos registrados hoy a PDF con sus códigos QR"
+          >
+            <Download size={18} />
+            Activos del Día
+          </button>
           <div className="relative">
             <button
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border transition ${

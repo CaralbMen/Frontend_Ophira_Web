@@ -111,7 +111,7 @@ const Login = () => {
                                 />
                                 <span className={`ml-2 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Recuérdame</span>
                             </label>
-                            <a href="#" className={`text-sm font-medium hover:underline ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
+                            <a href="mailto:124051193@upq.edu.mx?subject=Actualización%20de%20contraseña&body=Solicito%20actualización%20de%20mi%20contraseña" className={`text-sm font-medium hover:underline ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
                                 ¿Olvidaste tu contraseña?
                             </a>
                         </div>

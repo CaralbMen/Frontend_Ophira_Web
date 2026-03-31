@@ -58,9 +58,9 @@ const Scanner = () => {
       const escaneos = data.slice(0, 5).map((mov) => ({
         id_movimiento: mov.id_movimiento,
         id_activo: mov.id_activo,
-        nombre: mov.nombre_activo || `Activo #${mov.id_activo}`,
+        nombre: mov.nombre_activo || `Activo ${mov.id_activo}`,
         estado: capitalizarPrimera(mov.tipo_movimiento),
-        tipo: mov.nombre_usuario || `Usuario #${mov.id_usuario}`,
+        tipo: mov.nombre_usuario || `Usuario ${mov.id_usuario}`,
         id_aula: new Date(mov.fecha_movimiento).toLocaleTimeString('es-MX', {
           hour: '2-digit',
           minute: '2-digit',
@@ -88,7 +88,7 @@ const Scanner = () => {
       await api.post('movimientos', {
         tipo_movimiento: 'Escaneo',
         fecha_movimiento: new Date().toISOString(),
-        descripcion: `Escaneo de activo #${idActivo}`,
+        descripcion: `Escaneo de activo ${idActivo}`,
         id_usuario: idUsuario,
         id_activo: idActivo,
       });

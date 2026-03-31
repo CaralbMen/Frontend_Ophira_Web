@@ -57,6 +57,14 @@ const Historial = () => {
             .trim();
           const puestoResponsable = String(mov.puesto || mov.responsable_puesto || '').trim();
           const areaResponsable = String(mov.area || mov.responsable_area || '').trim();
+          
+          // Responsable del activo
+          const nombreResponsableActivo = [mov.responsable, mov.responsable_apellido]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+          const puestoResponsableActivo = String(mov.responsable_puesto_activo || '').trim();
+          const areaResponsableActivo = String(mov.responsable_area_activo || '').trim();
 
           return {
             id: mov.id_movimiento,
@@ -68,18 +76,23 @@ const Historial = () => {
             hora: fecha && !Number.isNaN(fecha.getTime())
               ? fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
               : '-',
-            usuario: nombreResponsable || `Usuario #${mov.id_usuario}`,
+            usuario: nombreResponsable || `Usuario ${mov.id_usuario}`,
             puesto: puestoResponsable || null,
             area: areaResponsable || null,
+            responsableActivo: nombreResponsableActivo || 'Sin asignar',
+            puestoActivo: puestoResponsableActivo || null,
+            areaActivo: areaResponsableActivo || null,
             assetId: mov.id_activo,
+            idActivo: mov.id_activo,
+            nombreActivo: mov.nombre_activo || 'Activo sin nombre',
+            categoriaActivo: mov.categoria_activo || 'Sin categoría',
             accion: capitalizarPrimera(mov.tipo_movimiento) || 'Sin tipo',
             accionColor:
               tipo === 'depreciacion' ? 'yellow' :
               tipo === 'baja' ? 'red' :
               tipo === 'actualizacion' ? 'blue' :
               'green',
-            cambios: mov.descripcion || `Movimiento de tipo ${capitalizarPrimera(mov.tipo_movimiento) || 'General'}`,
-            accionBoton: 'Ver'
+            cambios: mov.descripcion || `Movimiento de tipo ${capitalizarPrimera(mov.tipo_movimiento) || 'General'}`
           };
         });
 
@@ -105,7 +118,12 @@ const Historial = () => {
         String(item.accion),
         String(item.usuario),
         String(item.puesto || ''),
-        String(item.area || '')
+        String(item.area || ''),
+        String(item.responsableActivo),
+        String(item.puestoActivo || ''),
+        String(item.areaActivo || ''),
+        String(item.nombreActivo),
+        String(item.categoriaActivo)
       ].some((valor) => valor.toLowerCase().includes(termino));
 
       const coincideAccion =
@@ -138,15 +156,6 @@ const Historial = () => {
     }
   };
 
-  const getActionButtonStyle = (accionBoton) => {
-    if (accionBoton === 'Restaurar') {
-      return 'text-orange-600 hover:text-orange-700 hover:underline';
-    } else if (accionBoton === 'Descargar') {
-      return 'text-purple-600 hover:text-purple-700 hover:underline';
-    }
-    return 'text-blue-600 hover:text-blue-700 hover:underline';
-  };
-
   const handleRefresh = () => {
     window.location.reload();
   };
@@ -157,13 +166,14 @@ const Historial = () => {
     }
 
     const registros = historialFiltrado.map((item) => ({
-      ID: item.id,
       Fecha: item.fecha,
-      Hora: item.hora,
       Usuario: item.usuario,
-      Activo: item.assetId,
+      ResponsableActivo: item.responsableActivo,
+      IDActivo: item.assetId,
+      Activo: item.nombreActivo,
+      Categoria: item.categoriaActivo,
       Movimiento: item.accion,
-      Descripcion: item.cambios,
+      Descripcion: item.cambios
     }));
 
     const resumenPorTipo = Object.entries(
@@ -205,8 +215,8 @@ const Historial = () => {
 
     autoTable(doc, {
       startY: 210,
-      head: [['ID', 'Fecha', 'Hora', 'Usuario', 'Activo', 'Movimiento', 'Descripcion']],
-      body: registros.map((r) => [r.ID, r.Fecha, r.Hora, r.Usuario, r.Activo, r.Movimiento, r.Descripcion]),
+      head: [['Fecha', 'Usuario', 'Responsable Activo', 'ID Activo', 'Nombre', 'Categoría', 'Movimiento', 'Descripcion']],
+      body: registros.map((r) => [r.Fecha, r.Usuario, r.ResponsableActivo, r.IDActivo, r.Activo, r.Categoria, r.Movimiento, r.Descripcion]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [37, 99, 235] },
     });
@@ -222,7 +232,6 @@ const Historial = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
           Historial de Actividad
@@ -321,7 +330,7 @@ const Historial = () => {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Yo había ponido mi historial aki */}
       <div className={`rounded-lg border overflow-hidden transition ${
         isDark 
           ? 'bg-slate-800 border-slate-700' 
@@ -339,10 +348,16 @@ const Historial = () => {
                   FECHA
                 </th>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  RESPONSABLE
+                  USUARIO MOVIMIENTO
                 </th>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  ID DEL ACTIVO
+                  RESPONSABLE DEL ACTIVO
+                </th>
+                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  ID ACTIVO
+                </th>
+                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  NOMBRE DEL ACtiVO
                 </th>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   MOVIMIENTO
@@ -350,15 +365,12 @@ const Historial = () => {
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   DESCRIPCIÓN
                 </th>
-                <th className={`px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  ACCIONES
-                </th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {loading && (
                 <tr>
-                  <td colSpan={6} className={`px-4 py-8 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <td colSpan={7} className={`px-4 py-8 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Cargando historial...
                   </td>
                 </tr>
@@ -366,7 +378,7 @@ const Historial = () => {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-sm text-red-600">
+                  <td colSpan={7} className="px-4 py-8 text-sm text-red-600">
                     {error}
                   </td>
                 </tr>
@@ -374,7 +386,7 @@ const Historial = () => {
 
               {!loading && !error && historialFiltrado.length === 0 && (
                 <tr>
-                  <td colSpan={6} className={`px-4 py-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <td colSpan={7} className={`px-4 py-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                     No hay movimientos para mostrar con los filtros actuales.
                   </td>
                 </tr>
@@ -397,9 +409,28 @@ const Historial = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer hover:underline">
-                      {item.assetId}
-                    </span>
+                    <div className="flex flex-col">
+                      <div className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{item.responsableActivo}</div>
+                      {(item.puestoActivo || item.areaActivo) && (
+                        <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {[item.puestoActivo, item.areaActivo].filter(Boolean).join(' de ')}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`px-4 py-3 text-sm font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                    {item.idActivo}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nombre:</span>
+                      <span className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {item.nombreActivo}
+                      </span>
+                      <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {item.categoriaActivo}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium ${getAccionBadgeColor(item.accionColor)}`}>
@@ -411,11 +442,6 @@ const Historial = () => {
                     {item.subcambios && (
                       <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.subcambios}</div>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button className={`text-sm font-medium ${getActionButtonStyle(item.accionBoton)}`}>
-                      {item.accionBoton}
-                    </button>
                   </td>
                 </tr>
               ))}

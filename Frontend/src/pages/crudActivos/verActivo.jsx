@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react';
 import { api } from '../../services/api';
+import QRCodeComponent from '../../components/QRCode';
 
 const normalizarOpciones = (items) => {
   if (!Array.isArray(items)) {
@@ -236,6 +237,8 @@ const VerActivo = () => {
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [cargandoActivo, setCargandoActivo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [mostrarModalQR, setMostrarModalQR] = useState(false);
+  const [idActivoCreado, setIdActivoCreado] = useState(null);
 
   // const enviarDatos= async()=>{
   //   console.log('Datos a enviar:', formData);
@@ -370,8 +373,14 @@ const VerActivo = () => {
       setGuardando(true);
 
       if (modo === 'crear') {
-        await api.post('assets', payload);
-        navigate(-1);
+        const respuesta = await api.post('assets', payload);
+        const nuevoId = respuesta?.id_activo || respuesta?.id || respuesta?.data?.id_activo;
+        if (nuevoId) {
+          setIdActivoCreado(nuevoId);
+          setMostrarModalQR(true);
+        } else {
+          navigate(-1);
+        }
         return;
       }
 
@@ -483,7 +492,10 @@ const VerActivo = () => {
             isDark ? 'bg-slate-800' : 'bg-white'
           } rounded-lg shadow-sm p-6`}>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -972,6 +984,19 @@ const VerActivo = () => {
                 />
               </div>
             </div>
+              </div>
+
+              {id && (
+                <div className="lg:col-span-1 sticky top-6">
+                  <QRCodeComponent 
+                    value={id}
+                    size={180}
+                    title={`ID Activo: ${id}`}
+                    showDownload={true}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-700">
               <button
@@ -1003,6 +1028,57 @@ const VerActivo = () => {
           </div>
         </form>
       </div>
+
+      {mostrarModalQR && idActivoCreado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`${
+            isDark ? 'bg-slate-800' : 'bg-white'
+          } rounded-lg shadow-lg p-8 max-w-sm w-full`}>
+            <h2 className={`text-2xl font-bold mb-4 text-center ${
+              isDark ? 'text-white' : 'text-slate-800'
+            }`}>
+              ¡Activo Creado!
+            </h2>
+            
+            <p className={`text-center mb-6 ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>
+              Tu activo ha sido creado exitosamente. Aquí está su código QR:
+            </p>
+
+            <div className="flex justify-center mb-6">
+              <QRCodeComponent 
+                value={String(idActivoCreado)}
+                size={200}
+                title={`ID: ${idActivoCreado}`}
+                showDownload={true}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${
+                  isDark
+                    ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                    : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
+                }`}
+              >
+                Volver
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarModalQR(false);
+                  navigate('/activos');
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                Ir al Inventario
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

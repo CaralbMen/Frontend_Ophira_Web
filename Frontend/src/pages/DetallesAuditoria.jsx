@@ -150,7 +150,7 @@ const DetallesAuditoria = () => {
     return [auditoria?.nombre_usuario || auditoria?.nombre, auditoria?.apellido_paterno]
       .filter(Boolean)
       .join(' ')
-      .trim() || `Usuario #${auditoria?.id_usuario_auditor ?? '-'}`;
+      .trim() || `Usuario ${auditoria?.id_usuario_auditor ?? '-'}`;
   }, [auditoria]);
 
   const auditorPuestoArea = useMemo(() => {
@@ -209,16 +209,16 @@ const DetallesAuditoria = () => {
 
     const auditorNombre =
       [auditoria.nombre_usuario || auditoria.nombre, auditoria.apellido_paterno].filter(Boolean).join(' ') ||
-      `Usuario #${auditoria.id_usuario_auditor}`;
+      `Usuario ${auditoria.id_usuario_auditor}`;
 
     doc.setFontSize(16);
     doc.text('Reporte de Auditoria', 40, 40);
 
     doc.setFontSize(10);
-    doc.text(`ID Auditoria: #${auditoria.id_auditoria}`, 40, 62);
+    doc.text(`ID Auditoria: ${auditoria.id_auditoria}`, 40, 62);
     doc.text(`Fecha: ${fechaAuditoria}`, 220, 62);
     doc.text(`Auditor: ${auditorNombre}`, 40, 78);
-    doc.text(`Ubicacion: Aula #${auditoria.id_aula ?? '-'}`, 40, 94);
+    doc.text(`Ubicacion: Aula ${auditoria.id_aula ?? '-'}`, 40, 94);
     doc.text(`Estado general: ${auditoria.estado_general || 'Sin estado'}`, 220, 94);
     doc.text(`Total activos: ${activosNormalizados.length}`, 40, 110);
     doc.text(`Localizados: ${localizados}`, 220, 110);
@@ -283,7 +283,7 @@ const DetallesAuditoria = () => {
               Detalle de Auditoría
             </h1>
             <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              ID: #{auditoria.id_auditoria}
+              ID: {auditoria.id_auditoria}
             </p>
           </div>
           <button
@@ -352,7 +352,7 @@ const DetallesAuditoria = () => {
             <div className="flex items-center gap-2">
               <MapPin size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
               <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Aula #{auditoria.id_aula ?? '-'}
+                Aula {auditoria.id_aula ?? '-'}
               </p>
             </div>
           </div>

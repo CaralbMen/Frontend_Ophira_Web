@@ -125,18 +125,18 @@ const Reportes = () => {
   ];
 
   const acquisitionData = [
-    { month: 'Enero', value: toNumber(reporteData.enero) },
-    { month: 'Febrero', value: toNumber(reporteData.febrero) },
-    { month: 'Marzo', value: toNumber(reporteData.marzo) },
-    { month: 'Abril', value: toNumber(reporteData.abril) },
-    { month: 'Mayo', value: toNumber(reporteData.mayo) },
-    { month: 'Junio', value: toNumber(reporteData.junio) },
-    { month: 'Julio', value: toNumber(reporteData.julio) },
-    { month: 'Agosto', value: toNumber(reporteData.agosto) },
-    { month: 'Septiembre', value: toNumber(reporteData.septiembre) },
-    { month: 'Octubre', value: toNumber(reporteData.octubre) },
-    { month: 'Noviembre', value: toNumber(reporteData.noviembre) },
-    { month: 'Diciembre', value: toNumber(reporteData.diciembre) },
+    { month: 'Ene', value: toNumber(reporteData.enero) },
+    { month: 'Feb', value: toNumber(reporteData.febrero) },
+    { month: 'Mar', value: toNumber(reporteData.marzo) },
+    { month: 'Abr', value: toNumber(reporteData.abril) },
+    { month: 'May', value: toNumber(reporteData.mayo) },
+    { month: 'Jun', value: toNumber(reporteData.junio) },
+    { month: 'Jul', value: toNumber(reporteData.julio) },
+    { month: 'Ago', value: toNumber(reporteData.agosto) },
+    { month: 'Sep', value: toNumber(reporteData.septiembre) },
+    { month: 'Oct', value: toNumber(reporteData.octubre) },
+    { month: 'Nov', value: toNumber(reporteData.noviembre) },
+    { month: 'Dic', value: toNumber(reporteData.diciembre) },
   ];
 
   const maxValue = Math.max(...acquisitionData.map(d => d.value), 1);
