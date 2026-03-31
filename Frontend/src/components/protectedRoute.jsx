@@ -1,11 +1,18 @@
 import {Outlet, Navigate} from 'react-router-dom';
-import { getToken } from '../services/authStorage';
+import { clearToken, getToken, getTokenRole } from '../services/authStorage';
 
 const ProtectedRoute = ({ children }) => {
     const token = getToken();
     if (!token) {
         return <Navigate to="/login" />;
     }
+
+    const rol = getTokenRole();
+    if (rol !== 1) {
+        clearToken();
+        return <Navigate to="/login" />;
+    }
+
     return <Outlet />;
 }
 

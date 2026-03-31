@@ -23,7 +23,7 @@ const mapUsuarioToForm = (usuario = {}) => ({
   apaterno_usuario: usuario.apellido_paterno || usuario.apaterno_usuario || '',
   amaterno_usuario: usuario.apellido_materno || usuario.amaterno_usuario || '',
   correo_usuario: usuario.correo || usuario.correo_usuario || '',
-  pwd_usuario: usuario.pwd_usuario || '',
+  pwd_usuario: usuario.password || usuario.pwd_usuario || '',
   telefono_usuario: usuario.telefono || usuario.telefono_usuario || '',
   fecha_registro_usuario: usuario.fecha_registro || usuario.fecha_registro_usuario || '',
   FK_id_rol: usuario.id_rol || usuario.FK_id_rol || '',
@@ -41,6 +41,7 @@ const VerUsuario = () => {
   const [areas, setAreas] = useState([]);
   const [catalogoStatus, setCatalogoStatus] = useState({ type: '', message: '' });
   const [quickFormOpen, setQuickFormOpen] = useState('');
+  const [passwordOriginal, setPasswordOriginal] = useState('');
   const modo = location.state?.modo || (id ? 'editar' : 'crear');
   const usuarioExistente = location.state?.usuario;
   const [nuevoRol, setNuevoRol] = useState({ nombre: '', descripcion: '' });
@@ -59,6 +60,20 @@ const VerUsuario = () => {
     FK_id_puesto: '',
     activo_usuario: true
   });
+
+  const limpiarCatalogoStatus = () => setCatalogoStatus({ type: '', message: '' });
+
+  const toggleQuickForm = (formKey) => {
+    limpiarCatalogoStatus();
+    setQuickFormOpen((prev) => (prev === formKey ? '' : formKey));
+  };
+
+  const cerrarFormulario = () => {
+    limpiarCatalogoStatus();
+    setQuickFormOpen('');
+    navigate(-1);
+  };
+
   const cargarCatalogos = async () => {
     try {
       const [rolesData, puestosData, areasData] = await Promise.all([
@@ -87,6 +102,7 @@ const VerUsuario = () => {
         try {
           const usuarioResponse = await api.get(`usuarios/${id}`);
           setFormData(mapUsuarioToForm(usuarioResponse));
+          setPasswordOriginal(usuarioResponse?.password || '');
           return;
         } catch (error) {
           console.error('Error al cargar usuario por id:', error);
@@ -95,6 +111,7 @@ const VerUsuario = () => {
 
       if (usuarioExistente) {
         setFormData(mapUsuarioToForm(usuarioExistente));
+        setPasswordOriginal(usuarioExistente?.password || '');
       }
     };
 
@@ -146,7 +163,7 @@ const VerUsuario = () => {
 
     try {
       await api.post('puestos', {
-        nombre: nuevoPuesto.nombre.trim(),
+        nombre_puesto: nuevoPuesto.nombre.trim(),
         id_area: Number(nuevoPuesto.id_area)
       });
       setNuevoPuesto({ nombre: '', id_area: '' });
@@ -167,10 +184,31 @@ const VerUsuario = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    const payloadBase = {
+      nombre_usuario: formData.nombre_usuario.trim(),
+      apellido_paterno: formData.apaterno_usuario.trim(),
+      apellido_materno: formData.amaterno_usuario.trim(),
+      correo: formData.correo_usuario.trim(),
+      telefono: formData.telefono_usuario.trim(),
+      id_rol: formData.FK_id_rol,
+      id_puesto: formData.FK_id_puesto,
+    };
+
     if (modo === 'crear') {
-      console.log('Crear usuario:', formData);
-      navigate(-1);
+      if (!formData.pwd_usuario.trim()) {
+        console.error('La contraseña es obligatoria para crear usuario');
+        return;
+      }
+
+      try {
+        await api.post('usuarios', {
+          ...payloadBase,
+          password: formData.pwd_usuario,
+        });
+        navigate(-1);
+      } catch (error) {
+        console.error('Error al crear usuario:', error);
+      }
     } else if (modo === 'editar') {
       const usuarioId = id || usuarioExistente?.id_usuario;
 
@@ -180,15 +218,13 @@ const VerUsuario = () => {
       }
 
       const payload = {
-        nombre_usuario: formData.nombre_usuario.trim(),
-        apellido_paterno: formData.apaterno_usuario.trim(),
-        apellido_materno: formData.amaterno_usuario.trim(),
-        correo: formData.correo_usuario.trim(),
-        telefono: formData.telefono_usuario.trim(),
-        id_rol: formData.FK_id_rol,
-        id_puesto: formData.FK_id_puesto,
+        ...payloadBase,
         activo: Boolean(formData.activo_usuario),
       };
+
+      if (formData.pwd_usuario && formData.pwd_usuario !== passwordOriginal) {
+        payload.password = formData.pwd_usuario;
+      }
 
       try {
         await api.put(`usuarios/${usuarioId}`, payload);
@@ -253,7 +289,7 @@ const VerUsuario = () => {
       <div className="p-6 max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => navigate(-1)}
+            onClick={cerrarFormulario}
             className={`p-2 rounded-lg ${
               isDark 
                 ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-300' 
@@ -285,7 +321,7 @@ const VerUsuario = () => {
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               type="button"
-              onClick={() => setQuickFormOpen((prev) => (prev === 'rol' ? '' : 'rol'))}
+              onClick={() => toggleQuickForm('rol')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 quickFormOpen === 'rol'
                   ? 'bg-green-600 text-white'
@@ -299,7 +335,7 @@ const VerUsuario = () => {
 
             <button
               type="button"
-              onClick={() => setQuickFormOpen((prev) => (prev === 'area' ? '' : 'area'))}
+              onClick={() => toggleQuickForm('area')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 quickFormOpen === 'area'
                   ? 'bg-green-600 text-white'
@@ -313,7 +349,7 @@ const VerUsuario = () => {
 
             <button
               type="button"
-              onClick={() => setQuickFormOpen((prev) => (prev === 'puesto' ? '' : 'puesto'))}
+              onClick={() => toggleQuickForm('puesto')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 quickFormOpen === 'puesto'
                   ? 'bg-green-600 text-white'
@@ -542,6 +578,27 @@ const VerUsuario = () => {
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
                 }`}>
+                  Contraseña
+                </label>
+                <input
+                  type="text"
+                  name="pwd_usuario"
+                  value={formData.pwd_usuario}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className={`w-full px-4 py-2 rounded-lg border ${
+                    isDark
+                      ? 'bg-slate-700 border-slate-600 text-white'
+                      : 'bg-white border-gray-300 text-slate-900'
+                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  required={modo === 'crear'}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}>
                   Teléfono
                 </label>
                 <input
@@ -651,7 +708,7 @@ const VerUsuario = () => {
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-700">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={cerrarFormulario}
                 className={`px-6 py-2 rounded-lg ${
                   isDark
                     ? 'text-slate-300 hover:bg-slate-700'

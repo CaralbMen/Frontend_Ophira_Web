@@ -77,6 +77,10 @@ const Dashboard = () => {
     numero_aula: '',
     tipo: 'Aula',
   });
+
+  const limpiarOperationStatus = () => setOperationStatus({ type: '', message: '' });
+  const limpiarCategoriaStatus = () => setCategoriaStatus({ type: '', message: '' });
+
   useEffect(() => {
     const cargarDashboard = async () => {
       try {
@@ -328,6 +332,7 @@ const Dashboard = () => {
               onClick={() => {
                 setShowUbicacionMenu((prev) => {
                   const nextOpen = !prev;
+                  limpiarOperationStatus();
                   if (nextOpen) {
                     cargarEdificiosParaPiso();
                   }
@@ -351,7 +356,10 @@ const Dashboard = () => {
                     className={`p-1 rounded transition ${
                       isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                     }`}
-                    onClick={() => setShowUbicacionMenu(false)}
+                      onClick={() => {
+                        limpiarOperationStatus();
+                        setShowUbicacionMenu(false);
+                      }}
                     type="button"
                   >
                     <X size={16} />
@@ -381,6 +389,7 @@ const Dashboard = () => {
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => setActiveCreateForm('edificio')}
+                    onClickCapture={limpiarOperationStatus}
                     type="button"
                   >
                     <Building2 size={14} />
@@ -395,6 +404,7 @@ const Dashboard = () => {
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => {
+                      limpiarOperationStatus();
                       setActiveCreateForm('piso')
                       cargarEdificiosParaPiso();
                     }}
@@ -412,6 +422,7 @@ const Dashboard = () => {
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => {
+                      limpiarOperationStatus();
                       setActiveCreateForm('aula');
                       cargarEdificiosParaPiso();
                     }}
@@ -664,9 +675,7 @@ const Dashboard = () => {
               onClick={() => {
                 setShowCategoriaMenu((prev) => {
                   const nextState = !prev;
-                  if (nextState) {
-                    setCategoriaStatus({ type: '', message: '' });
-                  }
+                  limpiarCategoriaStatus();
                   return nextState;
                 });
               }}
@@ -686,7 +695,10 @@ const Dashboard = () => {
                   className={`p-1 rounded transition ${
                     isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                   }`}
-                  onClick={() => setShowCategoriaMenu(false)}
+                  onClick={() => {
+                    limpiarCategoriaStatus();
+                    setShowCategoriaMenu(false);
+                  }}
                   type="button"
                 >
                   <X size={16} />
