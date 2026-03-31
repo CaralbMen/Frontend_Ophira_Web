@@ -57,7 +57,7 @@ const Historial = () => {
             .trim();
           const puestoResponsable = String(mov.puesto || mov.responsable_puesto || '').trim();
           const areaResponsable = String(mov.area || mov.responsable_area || '').trim();
-          
+
           // Responsable del activo
           const nombreResponsableActivo = [mov.responsable, mov.responsable_apellido]
             .filter(Boolean)
@@ -89,9 +89,9 @@ const Historial = () => {
             accion: capitalizarPrimera(mov.tipo_movimiento) || 'Sin tipo',
             accionColor:
               tipo === 'depreciacion' ? 'yellow' :
-              tipo === 'baja' ? 'red' :
-              tipo === 'actualizacion' ? 'blue' :
-              'green',
+                tipo === 'baja' ? 'red' :
+                  tipo === 'actualizacion' ? 'blue' :
+                    'green',
             cambios: mov.descripcion || `Movimiento de tipo ${capitalizarPrimera(mov.tipo_movimiento) || 'General'}`
           };
         });
@@ -114,8 +114,8 @@ const Historial = () => {
     return historialData.filter((item) => {
       const coincideTermino = !termino || [
         String(item.id),
+        String(item.idActivo),
         String(item.assetId),
-        String(item.accion),
         String(item.usuario),
         String(item.puesto || ''),
         String(item.area || ''),
@@ -123,7 +123,8 @@ const Historial = () => {
         String(item.puestoActivo || ''),
         String(item.areaActivo || ''),
         String(item.nombreActivo),
-        String(item.categoriaActivo)
+        String(item.categoriaActivo),
+        String(item.accion)
       ].some((valor) => valor.toLowerCase().includes(termino));
 
       const coincideAccion =
@@ -237,18 +238,17 @@ const Historial = () => {
           Historial de Actividad
         </h1>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExport}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition ${
-              isDark 
-                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition ${isDark
+                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
+              }`}
           >
             <Download size={16} />
             Exportar PDF
           </button>
-          <button 
+          <button
             onClick={handleRefresh}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
           >
@@ -258,38 +258,34 @@ const Historial = () => {
         </div>
       </div>
 
-      <div className={`rounded-xl p-6 border transition ${
-        isDark 
-          ? 'bg-slate-800 border-slate-700' 
+      <div className={`rounded-xl p-6 border transition ${isDark
+          ? 'bg-slate-800 border-slate-700'
           : 'bg-white border-slate-200'
-      }`}>
+        }`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${
-              isDark ? 'text-slate-400' : 'text-slate-400'
-            }`} size={18} />
-            <input 
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-400' : 'text-slate-400'
+              }`} size={18} />
+            <input
               type="text"
-              placeholder="Búsqueda por ID o tipo"
+              placeholder="Buscar por usuario movimiento o ID activo"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border transition text-sm ${
-                isDark 
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500' 
+              className={`w-full pl-10 pr-4 py-2.5 rounded-lg border transition text-sm ${isDark
+                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500'
                   : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             />
           </div>
 
           <div className="relative">
-            <select 
+            <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className={`w-full px-4 py-2.5 rounded-lg border transition text-sm appearance-none cursor-pointer ${
-                isDark 
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 focus:border-blue-500' 
+              className={`w-full px-4 py-2.5 rounded-lg border transition text-sm appearance-none cursor-pointer ${isDark
+                  ? 'bg-slate-900 border-slate-700 text-slate-200 focus:border-blue-500'
                   : 'bg-white border-slate-300 text-slate-800 focus:border-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
               {accionesDisponibles.map((accion) => (
                 <option key={accion} value={accion}>{accion}</option>
@@ -306,7 +302,7 @@ const Historial = () => {
             >
               <Calendar className={isDark ? 'text-slate-400' : 'text-slate-400'} size={18} />
             </button>
-            <input 
+            <input
               ref={dateInputRef}
               type="date"
               value={filterDate}
@@ -314,35 +310,32 @@ const Historial = () => {
               onClick={(e) => e.currentTarget.showPicker?.()}
               onFocus={(e) => e.currentTarget.showPicker?.()}
               aria-label="Seleccionar fecha"
-              className={`w-full pl-12 pr-4 py-2.5 rounded-lg border transition text-sm ${
-                isDark 
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500' 
+              className={`w-full pl-12 pr-4 py-2.5 rounded-lg border transition text-sm ${isDark
+                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500'
                   : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer`}
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer`}
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end">
           <button onClick={limpiarFiltros} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Limpiar Filtros
+            Limpiar Filtros
           </button>
         </div>
       </div>
 
       {/* Yo había ponido mi historial aki */}
-      <div className={`rounded-lg border overflow-hidden transition ${
-        isDark 
-          ? 'bg-slate-800 border-slate-700' 
+      <div className={`rounded-lg border overflow-hidden transition ${isDark
+          ? 'bg-slate-800 border-slate-700'
           : 'bg-white border-slate-200'
-      }`}>
+        }`}>
         <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
-            <thead className={`border-b transition ${
-              isDark
+            <thead className={`border-b transition ${isDark
                 ? 'bg-slate-700 border-slate-600'
                 : 'bg-slate-50 border-slate-200'
-            }`}>
+              }`}>
               <tr>
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   FECHA

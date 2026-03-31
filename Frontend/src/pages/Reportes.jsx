@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useNavigate } from 'react-router-dom';
 
 const toNumber = (value) => {
   const parsed = Number(value ?? 0);
@@ -23,6 +24,7 @@ const formatearFecha = (fecha) => {
 };
 
 const Reportes = () => {
+  const navigate = useNavigate();
   const { isDark } = useTheme();
   const [dateRange, setDateRange] = useState('30');
   const [reporteData, setReporteData] = useState({
@@ -247,11 +249,10 @@ const Reportes = () => {
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
-              isDark
-                ? 'bg-slate-700 border-slate-600 text-slate-100'
-                : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${isDark
+              ? 'bg-slate-700 border-slate-600 text-slate-100'
+              : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <option value="30">Tras 30 días</option>
             <option value="90">Tras 90 días</option>
@@ -259,15 +260,14 @@ const Reportes = () => {
           </select>
           <button
             onClick={exportarPdfReporte}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${
-            isDark
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${isDark
               ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}>
+              }`}>
             <Download size={16} />
             Exportar PDF
           </button>
-        
+
         </div>
       </div>
 
@@ -277,9 +277,8 @@ const Reportes = () => {
           return (
             <div
               key={index}
-              className={`rounded-lg p-4 border transition ${
-                isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-              }`}
+              className={`rounded-lg p-4 border transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getStatColor(stat.color)}`}>
@@ -305,9 +304,8 @@ const Reportes = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-2 rounded-lg border p-6 ${
-          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
+        <div className={`lg:col-span-2 rounded-lg border p-6 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+          }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
               Adquisición de Activos
@@ -390,9 +388,8 @@ const Reportes = () => {
         </div>
 
         {/* Donut Chart */}
-        <div className={`rounded-lg border p-6 ${
-          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
+        <div className={`rounded-lg border p-6 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+          }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
               Estatus de Activos
@@ -430,7 +427,7 @@ const Reportes = () => {
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
               Actividad Reciente
             </h3>
-            <button className={`text-sm font-medium text-blue-600 hover:text-blue-700`}>
+            <button onClick={() => navigate('/historial')} className={`text-sm font-medium text-blue-600 hover:text-blue-700`}>
               Ver Todo
             </button>
           </div>
