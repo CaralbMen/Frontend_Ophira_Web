@@ -2,8 +2,8 @@ import { useState } from 'react'
 import {BrowserRouter, Routes, Route, Navigate} from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
-import Dashboard from './pages/dashboard';
-import Login from './pages/login';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
 import Activos from './pages/Activos';
 import Scanner from './pages/Scanner';
 import Reportes from './pages/Reportes';
