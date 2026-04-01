@@ -1,4 +1,4 @@
-const URL_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api/";
+const URL_BASE = import.meta.env.VITE_API_URL;
 import { clearToken, getToken } from './authStorage';
 
 let sesionExpiradaNotificada = false;

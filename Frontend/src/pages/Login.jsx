@@ -39,7 +39,6 @@ const Login = () => {
         setForgotStep(1);
     };
 
-    // Paso 1: Solicitar código
     const handleRequestCode = async (e) => {
         e.preventDefault();
         setForgotError('');
@@ -67,7 +66,6 @@ const Login = () => {
         }
     };
 
-    // Paso 2: Verificar código
     const handleVerifyCode = async (e) => {
         e.preventDefault();
         setForgotError('');
@@ -98,7 +96,6 @@ const Login = () => {
         }
     };
 
-    // Paso 3: Cambiar contraseña
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setForgotError('');
@@ -151,6 +148,7 @@ const Login = () => {
         console.log("Contraseña:", password);
 
         const resultado = await api.post('auth/login', { correo, password });
+        console.log("Resultado del login:", resultado);
         if (resultado.codigo === 200) {
             saveToken(resultado.token, rememberMe);
             navigate('/dashboard');
