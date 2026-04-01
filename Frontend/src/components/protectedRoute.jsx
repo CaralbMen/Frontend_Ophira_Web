@@ -4,13 +4,13 @@ import { clearToken, getToken, getTokenRole } from '../services/authStorage';
 const ProtectedRoute = ({ children }) => {
     const token = getToken();
     if (!token) {
-        return <Navigate to="/login" />;
+        return <Navigate to="/login_ophira" />;
     }
 
     const rol = getTokenRole();
     if (rol !== 1) {
         clearToken();
-        return <Navigate to="/login" />;
+        return <Navigate to="/login_ophira" />;
     }
 
     return <Outlet />;

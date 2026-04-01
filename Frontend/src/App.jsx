@@ -32,7 +32,8 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Navigate to="/login_ophira" replace />} />
+          <Route path="/login_ophira" element={<Login />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path='/*' element={

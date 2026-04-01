@@ -94,8 +94,8 @@ const manejarSesionExpirada = (backendMessage) => {
     const mensaje = backendMessage || 'Tu sesion expiro. Vuelve a iniciar sesion.';
     window.alert(mensaje);
 
-    if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (window.location.pathname !== '/login_ophira') {
+        window.location.href = '/login_ophira';
     }
 };
 
