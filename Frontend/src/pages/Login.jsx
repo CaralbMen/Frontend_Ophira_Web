@@ -43,15 +43,16 @@ const Login = () => {
         e.preventDefault();
         setForgotError('');
         setForgotSuccess('');
+        const normalizedForgotEmail = forgotEmail.trim().toLowerCase();
 
-        if (!forgotEmail.trim()) {
+        if (!normalizedForgotEmail) {
             setForgotError('Por favor ingresa tu correo electrónico.');
             return;
         }
 
         setForgotLoading(true);
         try {
-            const resultado = await api.post('auth/forgot-password', { correo: forgotEmail });
+            const resultado = await api.post('auth/forgot-password', { correo: normalizedForgotEmail });
             if (resultado.codigo === 200) {
                 setForgotSuccess('Se envió un código a tu correo. Válido por 15 minutos.');
                 setForgotStep(2);
@@ -59,7 +60,7 @@ const Login = () => {
                 setForgotError(resultado.message || 'No se pudo procesar la solicitud.');
             }
         } catch (error) {
-            setForgotError('Hubo un error al procesar tu solicitud.');
+            setForgotError(error?.message || 'Hubo un error al procesar tu solicitud.');
             console.error(error);
         } finally {
             setForgotLoading(false);
@@ -70,6 +71,7 @@ const Login = () => {
         e.preventDefault();
         setForgotError('');
         setForgotSuccess('');
+        const normalizedForgotEmail = forgotEmail.trim().toLowerCase();
 
         if (!resetCode.trim() || resetCode.length !== 4) {
             setForgotError('Por favor ingresa un código válido de 4 dígitos.');
@@ -79,7 +81,7 @@ const Login = () => {
         setForgotLoading(true);
         try {
             const resultado = await api.post('auth/verify-reset-code', {
-                correo: forgotEmail,
+                correo: normalizedForgotEmail,
                 codigo: resetCode
             });
             if (resultado.codigo === 200) {
@@ -89,7 +91,7 @@ const Login = () => {
                 setForgotError(resultado.message || 'Código inválido o expirado.');
             }
         } catch (error) {
-            setForgotError('Error al verificar el código.');
+            setForgotError(error?.message || 'Error al verificar el código.');
             console.error(error);
         } finally {
             setForgotLoading(false);
@@ -100,6 +102,7 @@ const Login = () => {
         e.preventDefault();
         setForgotError('');
         setForgotSuccess('');
+        const normalizedForgotEmail = forgotEmail.trim().toLowerCase();
 
         if (!newPassword.trim() || !confirmPassword.trim()) {
             setForgotError('Por favor completa ambos campos de contraseña.');
@@ -119,7 +122,7 @@ const Login = () => {
         setForgotLoading(true);
         try {
             const resultado = await api.post('auth/reset-password', {
-                correo: forgotEmail,
+                correo: normalizedForgotEmail,
                 codigo: resetCode,
                 nuevaPassword: newPassword
             });
@@ -132,7 +135,7 @@ const Login = () => {
                 setForgotError(resultado.message || 'No se pudo actualizar la contraseña.');
             }
         } catch (error) {
-            setForgotError('Error al actualizar la contraseña.');
+            setForgotError(error?.message || 'Error al actualizar la contraseña.');
             console.error(error);
         } finally {
             setForgotLoading(false);

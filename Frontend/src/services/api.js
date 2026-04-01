@@ -1,4 +1,4 @@
-const URL_BASE = import.meta.env.VITE_API_URL;
+const URL_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/';
 import { clearToken, getToken } from './authStorage';
 
 let sesionExpiradaNotificada = false;
@@ -133,14 +133,15 @@ const construirErrorHttp = async (response, hadAuthToken = false) => {
     return error;
 };
 
-const manejarErrorDeRed = (error) => {
+const manejarErrorDeRed = (error, endpoint = '') => {
     if (error?.alreadyAlerted) {
         throw error;
     }
 
     const raw = String(error?.message || '').toLowerCase();
+    const urlObjetivo = `${URL_BASE || ''}${endpoint || ''}`;
     const message = raw.includes('failed to fetch')
-        ? 'No hay conexion con el servidor. Revisa que el backend este encendido.'
+        ? `No hay conexion con el servidor. URL: ${urlObjetivo || 'desconocida'}`
         : (error?.message || 'Error de conexion. Intenta de nuevo.');
 
     alertarError(message);
@@ -165,7 +166,7 @@ export const api = {
             }
             return await response.json();
         } catch (error) {
-            manejarErrorDeRed(error);
+            manejarErrorDeRed(error, endpoint);
         }
     },
     post: async (endpoint, data) => {
@@ -184,7 +185,7 @@ export const api = {
             }
             return await response.json();
         } catch (error) {
-            manejarErrorDeRed(error);
+            manejarErrorDeRed(error, endpoint);
         }
     },
     put: async (endpoint, data) => {
@@ -203,7 +204,7 @@ export const api = {
             }
             return await response.json();
         } catch (error) {
-            manejarErrorDeRed(error);
+            manejarErrorDeRed(error, endpoint);
         }
     },
     delete: async (endpoint) => {
@@ -221,7 +222,7 @@ export const api = {
             }
             return await response.json();
         } catch (error) {
-            manejarErrorDeRed(error);
+            manejarErrorDeRed(error, endpoint);
         }
     }
 }

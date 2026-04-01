@@ -5,17 +5,10 @@ import { ArrowLeft, Save, Trash2, Plus } from 'lucide-react';
 
 import {api} from '../../services/api';
 
-const formatearFecha = (fecha) => {
-  if (!fecha) return '';
-
-  const date = new Date(fecha);
-  if (Number.isNaN(date.getTime())) return String(fecha);
-
-  return date.toLocaleDateString('es-MX', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit'
-  });
+const esPasswordSegura = (password = '') => {
+  const trimmed = String(password).trim();
+  // Minimo 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial.
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(trimmed);
 };
 
 const contarActivosVerificados = (estadosFuente) => {
@@ -50,9 +43,8 @@ const mapUsuarioToForm = (usuario = {}) => ({
   apaterno_usuario: usuario.apellido_paterno || usuario.apaterno_usuario || '',
   amaterno_usuario: usuario.apellido_materno || usuario.amaterno_usuario || '',
   correo_usuario: usuario.correo || usuario.correo_usuario || '',
-  pwd_usuario: usuario.password || usuario.pwd_usuario || '',
+  pwd_usuario: '',
   telefono_usuario: usuario.telefono || usuario.telefono_usuario || '',
-  fecha_registro_usuario: usuario.fecha_registro || usuario.fecha_registro_usuario || '',
   FK_id_rol: usuario.id_rol || usuario.FK_id_rol || '',
   FK_id_puesto: usuario.id_puesto || usuario.FK_id_puesto || '',
   activo_usuario: usuario.activo_usuario ?? usuario.activo ?? usuario.estado === 'Activo'
@@ -68,7 +60,6 @@ const VerUsuario = () => {
   const [areas, setAreas] = useState([]);
   const [catalogoStatus, setCatalogoStatus] = useState({ type: '', message: '' });
   const [quickFormOpen, setQuickFormOpen] = useState('');
-  const [passwordOriginal, setPasswordOriginal] = useState('');
   const modo = location.state?.modo || (id ? 'editar' : 'crear');
   const usuarioExistente = location.state?.usuario;
   const [nuevoRol, setNuevoRol] = useState({ nombre: '', descripcion: '' });
@@ -87,7 +78,6 @@ const VerUsuario = () => {
     correo_usuario: '',
     pwd_usuario: '',
     telefono_usuario: '',
-    fecha_registro_usuario: '',
     FK_id_rol: '',
     FK_id_puesto: '',
     activo_usuario: true
@@ -171,7 +161,6 @@ const VerUsuario = () => {
         try {
           const usuarioResponse = await api.get(`usuarios/${id}`);
           setFormData(mapUsuarioToForm(usuarioResponse));
-          setPasswordOriginal(usuarioResponse?.password || '');
           await cargarActividadUsuario(usuarioResponse?.id_usuario || id);
           return;
         } catch (error) {
@@ -181,7 +170,6 @@ const VerUsuario = () => {
 
       if (usuarioExistente) {
         setFormData(mapUsuarioToForm(usuarioExistente));
-        setPasswordOriginal(usuarioExistente?.password || '');
         await cargarActividadUsuario(usuarioExistente?.id_usuario);
       }
     };
@@ -393,6 +381,8 @@ const VerUsuario = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const passwordTrimmed = formData.pwd_usuario.trim();
+
     const payloadBase = {
       nombre_usuario: formData.nombre_usuario.trim(),
       apellido_paterno: formData.apaterno_usuario.trim(),
@@ -404,15 +394,21 @@ const VerUsuario = () => {
     };
 
     if (modo === 'crear') {
-      if (!formData.pwd_usuario.trim()) {
+      if (!passwordTrimmed) {
         console.error('La contraseña es obligatoria para crear usuario');
+        window.alert('La contraseña es obligatoria para crear usuario.');
+        return;
+      }
+
+      if (!esPasswordSegura(passwordTrimmed)) {
+        window.alert('La contraseña debe tener minimo 8 caracteres e incluir mayuscula, minuscula, numero y caracter especial.');
         return;
       }
 
       try {
         await api.post('usuarios', {
           ...payloadBase,
-          password: formData.pwd_usuario,
+          password: passwordTrimmed,
         });
         navigate(-1);
       } catch (error) {
@@ -431,12 +427,25 @@ const VerUsuario = () => {
         activo: Boolean(formData.activo_usuario),
       };
 
-      if (formData.pwd_usuario && formData.pwd_usuario !== passwordOriginal) {
-        payload.password = formData.pwd_usuario;
+      if (passwordTrimmed) {
+        if (!esPasswordSegura(passwordTrimmed)) {
+          window.alert('La contraseña debe tener minimo 8 caracteres e incluir mayuscula, minuscula, numero y caracter especial.');
+          return;
+        }
+
+        payload.password = passwordTrimmed;
       }
 
       try {
-        await api.put(`usuarios/${usuarioId}`, payload);
+        const response = await api.put(`usuarios/${usuarioId}`, payload);
+
+        const seIntentoCambiarPassword = Boolean(passwordTrimmed);
+        const backendConfirmaEnvio = response?.notificacionPasswordEnviada === true;
+
+        if (seIntentoCambiarPassword && !backendConfirmaEnvio) {
+          window.alert('Usuario actualizado, pero no se pudo enviar el correo con la nueva contraseña.');
+        }
+
         navigate(-1);
       } catch (error) {
         console.error('Error al actualizar usuario:', error);
@@ -452,7 +461,6 @@ const VerUsuario = () => {
   };
 
   const isReadOnly = modo === 'eliminar';
-  const fechaRegistroFormateada = formatearFecha(formData.fecha_registro_usuario);
 
   const getTitulo = () => {
     switch (modo) {
@@ -944,11 +952,12 @@ const VerUsuario = () => {
                   Contraseña
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   name="pwd_usuario"
                   value={formData.pwd_usuario}
                   onChange={handleChange}
                   disabled={isReadOnly}
+                  placeholder={modo === 'editar' ? 'Dejar vacia para no cambiarla' : ''}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDark
                       ? 'bg-slate-700 border-slate-600 text-white'
@@ -956,6 +965,9 @@ const VerUsuario = () => {
                   } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
                   required={modo === 'crear'}
                 />
+                <p className={`mt-1 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Minimo 8 caracteres con mayuscula, minuscula, numero y simbolo.
+                </p>
               </div>
 
               <div>
@@ -978,23 +990,6 @@ const VerUsuario = () => {
                 />
               </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-slate-300' : 'text-slate-700'
-                }`}>
-                  Fecha de Registro
-                </label>
-                <input
-                  type="text"
-                  value={fechaRegistroFormateada}
-                  disabled
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } cursor-not-allowed opacity-80`}
-                />
-              </div>
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-slate-300' : 'text-slate-700'
