@@ -61,7 +61,7 @@ const Usuarios = () => {
   return (
     <div className="space-y-4">
 
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex flex-col gap-3 pb-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Gestión de Usuarios</h1>
           <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Administra los perfiles y permisos de usuarios</p>
@@ -114,7 +114,7 @@ const Usuarios = () => {
           : 'bg-white border-slate-200'
         }`}>
         <div className="max-h-[28rem] overflow-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[980px]">
             <thead className={`border-b transition ${isDark
                 ? 'bg-slate-700 border-slate-600'
                 : 'bg-slate-50 border-slate-200'

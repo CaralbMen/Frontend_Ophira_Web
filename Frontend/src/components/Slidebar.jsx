@@ -1,12 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Package, QrCode, FileText, History, Settings, Users, Moon, Sun, LogOut, ClipboardCheck, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useEffect, useMemo, useState } from 'react';
 import OphiraLogo from '../assets/OphiraLogo.png';
 import { clearToken, getToken } from '../services/authStorage';
 import { api } from '../services/api';
 
-const Slidebar = () => {
+const Slidebar = ({ isOpen = false, onClose = () => {} }) => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [usuarioSidebar, setUsuarioSidebar] = useState(null);
@@ -75,50 +75,68 @@ const Slidebar = () => {
           : 'text-slate-600 hover:bg-slate-100'
     }`;
 
+  const handleNavClick = () => {
+    onClose();
+  };
+
   return (
-    <div className={`w-64 h-screen fixed left-0 top-0 flex flex-col shadow-lg border-r z-50 transition-colors duration-200 ${
+    <div className={`w-64 h-screen fixed left-0 top-0 flex flex-col shadow-lg border-r z-50 transition-all duration-200 md:translate-x-0 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    } ${
       isDark 
         ? 'bg-ophira-bg-card border-ophira-bg-hover' 
         : 'bg-white border-slate-200'
     }`}>
       <div className="px-6 py-6">
-        <div className="flex items-center gap-2">
-          <img src={OphiraLogo} alt="Ophira" className="w-10 h-10 aspect-square object-cover" />
-          <div>
-            <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-              Ophira <span className="text-ophira-primary">QR</span>
-            </h1>
-            <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>v1.0</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <img src={OphiraLogo} alt="Ophira" className="w-10 h-10 aspect-square object-cover" />
+            <div>
+              <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                Ophira <span className="text-ophira-primary">QR</span>
+              </h1>
+              <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>v1.0</p>
+            </div>
           </div>
+          <button
+            type="button"
+            aria-label="Cerrar menú"
+            className={`rounded-lg p-1.5 transition md:hidden ${
+              isDark ? 'text-slate-300 hover:bg-ophira-bg-hover' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+            onClick={onClose}
+          >
+            <X size={18} />
+          </button>
         </div>
       </div>
 
       <nav className="flex-1 py-4">
-        <NavLink to="/dashboard" className={linkClass}>
+        <NavLink to="/dashboard" className={linkClass} onClick={handleNavClick}>
           <LayoutDashboard size={18} />
           <span className="font-medium text-sm">Dashboard</span>
         </NavLink>
-        <NavLink to="/activos" className={linkClass}>
+        <NavLink to="/activos" className={linkClass} onClick={handleNavClick}>
           <Package size={18} />
           <span className="font-medium text-sm">Activos</span>
         </NavLink>
-        <NavLink to="/scanner" className={linkClass}>
+        <NavLink to="/scanner" className={linkClass} onClick={handleNavClick}>
           <QrCode size={18} />
           <span className="font-medium text-sm">Leer QR</span>
         </NavLink>
-        <NavLink to="/reportes" className={linkClass}>
+        <NavLink to="/reportes" className={linkClass} onClick={handleNavClick}>
           <FileText size={18} />
           <span className="font-medium text-sm">Reportes</span>
         </NavLink>
-        <NavLink to="/historial" className={linkClass}>
+        <NavLink to="/historial" className={linkClass} onClick={handleNavClick}>
           <History size={18} />
           <span className="font-medium text-sm">Historial</span>
         </NavLink>
-        <NavLink to="/auditorias" className={linkClass}>
+        <NavLink to="/auditorias" className={linkClass} onClick={handleNavClick}>
           <ClipboardCheck size={18} />
           <span className="font-medium text-sm">Auditorias</span>
         </NavLink>
-        <NavLink to="/usuarios" className={linkClass}>
+        <NavLink to="/usuarios" className={linkClass} onClick={handleNavClick}>
           <Users size={18} />
           <span className="font-medium text-sm">Usuarios</span>
         </NavLink>
@@ -128,7 +146,10 @@ const Slidebar = () => {
         isDark ? 'border-ophira-bg-hover' : 'border-slate-200'
       }`}>
         <div 
-          onClick={() => navigate('/perfil')}
+          onClick={() => {
+            onClose();
+            navigate('/perfil');
+          }}
           className={`flex items-center gap-3 mb-3 p-2 rounded-lg cursor-pointer transition ${
             isDark ? 'hover:bg-ophira-bg-hover' : 'hover:bg-slate-100'
           }`}
@@ -153,6 +174,7 @@ const Slidebar = () => {
         </button>
         <button 
           onClick={() => {
+            onClose();
             clearToken();
             navigate('/login_ophira');
           }}

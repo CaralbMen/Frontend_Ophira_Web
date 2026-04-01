@@ -328,12 +328,12 @@ const Activos = () => {
   return (
     <div className="space-y-4">
       
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex flex-col gap-3 pb-2 md:flex-row md:items-center md:justify-between">
         <div>
             <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Inventario de Activos</h1>
             <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Gestiona y monitorea todos tus activos</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition ${
             isDark 
               ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
@@ -423,7 +423,7 @@ const Activos = () => {
           : 'bg-white border-slate-200'
       }`}>
         <div className="max-h-[28rem] overflow-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[860px]">
             <thead className={`border-b transition ${
               isDark
                 ? 'bg-slate-700 border-slate-600'

@@ -244,11 +244,11 @@ const Historial = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
           Historial de Actividad
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleExport}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition ${isDark
@@ -342,7 +342,7 @@ const Historial = () => {
           : 'bg-white border-slate-200'
         }`}>
         <div className="max-h-[28rem] overflow-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[1100px]">
             <thead className={`border-b transition ${isDark
                 ? 'bg-ophira-bg-hover border-ophira-bg-hover'
                 : 'bg-slate-50 border-slate-200'

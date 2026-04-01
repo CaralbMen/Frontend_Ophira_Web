@@ -1180,7 +1180,7 @@ const Dashboard = () => {
             <button className="text-ophira-primary hover:text-ophira-primary/80 text-sm font-medium">Ver Todo</button>
           </div>
           <div className="max-h-[28rem] overflow-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[760px]">
               <thead className={`border-b ${isDark ? 'border-ophira-bg-hover' : 'border-slate-200'}`}>
                 <tr>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Activo</th>

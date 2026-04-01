@@ -91,7 +91,7 @@ const Auditorias = () => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex flex-col gap-3 pb-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
             Auditorías de Activos
@@ -130,7 +130,7 @@ const Auditorias = () => {
           </div>
 
           {/* Filtros por periodo */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
@@ -169,7 +169,7 @@ const Auditorias = () => {
           : 'bg-white border-slate-200'
       }`}>
         <div className="max-h-[28rem] overflow-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[900px]">
             <thead className={`border-b transition ${
               isDark
                 ? 'bg-slate-700 border-slate-600'
