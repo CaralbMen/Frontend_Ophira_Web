@@ -175,8 +175,16 @@ const extraerActivo = (response) => {
     return response.rows[0] ?? null;
   }
 
+  if (response?.rows && typeof response.rows === 'object' && !Array.isArray(response.rows)) {
+    return response.rows;
+  }
+
   if (Array.isArray(response?.data?.rows)) {
     return response.data.rows[0] ?? null;
+  }
+
+  if (response?.data?.rows && typeof response.data.rows === 'object' && !Array.isArray(response.data.rows)) {
+    return response.data.rows;
   }
 
   if (response?.data?.activo) {
@@ -206,6 +214,7 @@ const VerActivo = () => {
   
   const modo = location.state?.modo || (id ? 'editar' : 'crear');
   const activoExistente = location.state?.activo;
+  const idActivoEdicion = id || activoExistente?.id_activo || activoExistente?.id || null;
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -245,15 +254,15 @@ const VerActivo = () => {
   // }
   useEffect(() => {
     const cargarActivoPorId = async () => {
-      if (!id || modo === 'crear') {
+      if (!idActivoEdicion || modo === 'crear') {
         return;
       }
 
       setCargandoActivo(true);
       try {
-        console.log('Cargando activo con ID:', id);
-        const response = await api.get(`assets/id/${id}`);
-        const activo = response.rows;
+        console.log('Cargando activo con ID:', idActivoEdicion);
+        const response = await api.get(`assets/id/${idActivoEdicion}`);
+        const activo = extraerActivo(response);
         console.log('Activo cargado:', activo);
         if (!activo) {
           window.alert('No fue posible obtener los datos del activo.');
@@ -272,7 +281,7 @@ const VerActivo = () => {
       }
     };
 
-    if (id && modo !== 'crear') {
+    if (idActivoEdicion && modo !== 'crear') {
       cargarActivoPorId();
       return;
     }
@@ -281,7 +290,7 @@ const VerActivo = () => {
       setFormData(mapActivoToFormData(activoExistente));
       setPartes(mapPartesToState(activoExistente.partes));
     }
-  }, [id, activoExistente, modo, navigate]);
+  }, [idActivoEdicion, activoExistente, modo, navigate]);
 
   useEffect(() => {
     const cargarCatalogos = async () => {
@@ -379,17 +388,22 @@ const VerActivo = () => {
           setIdActivoCreado(nuevoId);
           setMostrarModalQR(true);
         } else {
-          navigate(-1);
+          navigate('/activos', { replace: true, state: { refreshActivos: Date.now() } });
         }
         return;
       }
 
       if (modo === 'editar') {
-        await api.put(`assets/${id}`, payload);
+        if (!idActivoEdicion) {
+          window.alert('No se pudo identificar el activo a editar.');
+          return;
+        }
+
+        await api.put(`assets/${idActivoEdicion}`, payload);
         if (formData.multiparte) {
           console.log('Partes a actualizar:', partes);
         }
-        navigate(-1);
+        navigate('/activos', { replace: true, state: { refreshActivos: Date.now() } });
         return;
       }
 
@@ -398,7 +412,7 @@ const VerActivo = () => {
       }
     } catch (error) {
       console.error('Error al guardar el activo:', error);
-      window.alert('No se pudo guardar el activo. Intenta nuevamente.');
+      window.alert(error?.message || 'No se pudo guardar el activo. Intenta nuevamente.');
     } finally {
       setGuardando(false);
     }
@@ -409,10 +423,10 @@ const VerActivo = () => {
       try {
         setGuardando(true);
         await api.delete(`assets/${id}`);
-        navigate(-1);
+        navigate('/activos', { replace: true, state: { refreshActivos: Date.now() } });
       } catch (error) {
         console.error('Error al eliminar el activo:', error);
-        window.alert('No se pudo eliminar el activo. Intenta nuevamente.');
+        window.alert(error?.message || 'No se pudo eliminar el activo. Intenta nuevamente.');
       } finally {
         setGuardando(false);
       }
@@ -1080,7 +1094,7 @@ const VerActivo = () => {
               <button
                 onClick={() => {
                   setMostrarModalQR(false);
-                  navigate('/activos');
+                  navigate('/activos', { state: { refreshActivos: Date.now() } });
                 }}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
               >

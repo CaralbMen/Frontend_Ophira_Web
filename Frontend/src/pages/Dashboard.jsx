@@ -1,4 +1,4 @@
-import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical } from 'lucide-react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -40,10 +40,7 @@ const normalizarEstado = (estado) => String(estado || '')
 
 const esEstadoMantenimiento = (estado) => normalizarEstado(estado).includes('mantenimiento');
 
-const esEstadoDanado = (estado) => {
-  const valor = normalizarEstado(estado);
-  return valor.includes('danad') || valor.includes('deteriorad') || valor.includes('averiad');
-};
+const esEstadoRetirado = (estado) => normalizarEstado(estado).includes('retirad');
 
 const Dashboard = () => {
   const { isDark } = useTheme();
@@ -68,7 +65,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     total_activos: '0',
     activos_en_mantenimiento: '0',
-    activos_danados: '0',
+    activos_retirados: '0',
     aniadidos_recientemente: '0',
     valor_total: '0'
   });
@@ -91,6 +88,10 @@ const Dashboard = () => {
     numero_aula: '',
     tipo: 'Aula',
   });
+  const [edificiosEditables, setEdificiosEditables] = useState([]);
+  const [pisosEditables, setPisosEditables] = useState([]);
+  const [aulasEditables, setAulasEditables] = useState([]);
+  const [savingItemKey, setSavingItemKey] = useState('');
 
   const limpiarOperationStatus = () => setOperationStatus({ type: '', message: '' });
   const limpiarCategoriaStatus = () => setCategoriaStatus({ type: '', message: '' });
@@ -121,7 +122,7 @@ const Dashboard = () => {
 
   const totalActivos = toNumber(dashboardData.total_activos);
   const mantenimiento = activos.filter((a) => esEstadoMantenimiento(a.estado)).length || toNumber(dashboardData.activos_en_mantenimiento);
-  const danados = activos.filter((a) => esEstadoDanado(a.estado)).length || toNumber(dashboardData.activos_danados);
+  const retirados = activos.filter((a) => esEstadoRetirado(a.estado)).length || toNumber(dashboardData.activos_retirados);
   const recientes = toNumber(dashboardData.aniadidos_recientemente);
   const valorTotal = toNumber(dashboardData.valor_total);
 
@@ -143,9 +144,9 @@ const Dashboard = () => {
       trend: 'warning'
     },
     {
-      label: 'ACTIVOS DANADOS',
-      value: danados.toLocaleString('es-MX'),
-      change: 'Requieren atencion',
+      label: 'ACTIVOS RETIRADOS',
+      value: retirados.toLocaleString('es-MX'),
+      change: 'Fuera de operacion',
       icon: TrendingUp,
       color: 'red',
       trend: 'danger'
@@ -251,7 +252,9 @@ const Dashboard = () => {
   const cargarEdificiosParaPiso = async() => {
     try{
       const response = await api.get('ubicacion/edificio');
-      setEdificios(response);
+      const edificiosData = Array.isArray(response) ? response : [];
+      setEdificios(edificiosData);
+      setEdificiosEditables(edificiosData);
       console.log(response);
     } catch (error) {
       console.error('Error al cargar edificios:', error);
@@ -262,7 +265,9 @@ const Dashboard = () => {
   const cargarPisosXEdificio = async (edificioId) => {
     try{
       const response= await api.get(`ubicacion/piso/${edificioId}`);
-      setPisosXedificio(response);
+      const pisosData = Array.isArray(response) ? response : [];
+      setPisosXedificio(pisosData);
+      setPisosEditables(pisosData);
       console.log(response);
     }catch (error) {
       console.error('Error al cargar pisos:', error);
@@ -293,13 +298,142 @@ const Dashboard = () => {
   const cargarAulasXpiso= async(pisoId)=>{
     try{
       const response= await api.get(`ubicacion/aula/${pisoId}`);
-      setAulasXpiso(response);
+      const aulasData = Array.isArray(response) ? response : [];
+      setAulasXpiso(aulasData);
+      setAulasEditables(aulasData);
       console.log(response);
     }catch (error) {
       console.error('Error al cargar aulas:', error);
       setOperationStatus({ type: 'error', message: `Error al cargar aulas: ${error.message}` });
     }
   }
+
+  const handleEdificioEditableChange = (id_edificio, field, value) => {
+    setEdificiosEditables((prev) => prev.map((item) => (
+      item.id_edificio === id_edificio ? { ...item, [field]: value } : item
+    )));
+  };
+
+  const handlePisoEditableChange = (id_piso, field, value) => {
+    setPisosEditables((prev) => prev.map((item) => (
+      item.id_piso === id_piso ? { ...item, [field]: value } : item
+    )));
+  };
+
+  const handleAulaEditableChange = (id_aula, field, value) => {
+    setAulasEditables((prev) => prev.map((item) => (
+      item.id_aula === id_aula ? { ...item, [field]: value } : item
+    )));
+  };
+
+  const guardarEdificio = async (edificio) => {
+    try {
+      setSavingItemKey(`edificio-${edificio.id_edificio}`);
+      await api.put(`ubicacion/edificio/${edificio.id_edificio}`, {
+        nombre: String(edificio.nombre || '').trim(),
+        cantidad_pisos: Number(edificio.cantidad_pisos),
+        direccion: String(edificio.direccion || '').trim(),
+      });
+      setOperationStatus({ type: 'success', message: `Edificio ${edificio.id_edificio} actualizado.` });
+      await cargarEdificiosParaPiso();
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al guardar edificio: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
+
+  const guardarPiso = async (piso) => {
+    try {
+      setSavingItemKey(`piso-${piso.id_piso}`);
+      await api.put(`ubicacion/piso/${piso.id_piso}`, {
+        id_edificio: piso.id_edificio,
+        numero_piso: Number(piso.numero_piso),
+        cantidad_aulas: Number(piso.cantidad_aulas),
+      });
+      setOperationStatus({ type: 'success', message: `Piso ${piso.id_piso} actualizado.` });
+      await cargarPisosXEdificio(piso.id_edificio);
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al guardar piso: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
+
+  const guardarAula = async (aula) => {
+    try {
+      setSavingItemKey(`aula-${aula.id_aula}`);
+      await api.put(`ubicacion/aula/${aula.id_aula}`, {
+        id_piso: aula.id_piso,
+        numero_aula: String(aula.numero_aula || '').trim(),
+        tipo: String(aula.tipo || '').trim(),
+      });
+      setOperationStatus({ type: 'success', message: `Aula ${aula.id_aula} actualizada.` });
+      await cargarAulasXpiso(aula.id_piso);
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al guardar aula: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
+
+  const eliminarEdificio = async (edificio) => {
+    const confirmado = window.confirm(`Se eliminara el edificio ${edificio.id_edificio}. Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setSavingItemKey(`edificio-delete-${edificio.id_edificio}`);
+      await api.delete(`ubicacion/edificio/${encodeURIComponent(edificio.id_edificio)}`);
+      setOperationStatus({ type: 'success', message: `Edificio ${edificio.id_edificio} eliminado.` });
+      await cargarEdificiosParaPiso();
+      if (nuevoPiso.edificioId === edificio.id_edificio) {
+        setNuevoPiso((prev) => ({ ...prev, edificioId: '', numero_piso: '' }));
+        setPisosXedificio([]);
+        setPisosEditables([]);
+      }
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al eliminar edificio: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
+
+  const eliminarPiso = async (piso) => {
+    const confirmado = window.confirm(`Se eliminara el piso ${piso.id_piso}. Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setSavingItemKey(`piso-delete-${piso.id_piso}`);
+      await api.delete(`ubicacion/piso/${encodeURIComponent(piso.id_piso)}`);
+      setOperationStatus({ type: 'success', message: `Piso ${piso.id_piso} eliminado.` });
+      await cargarPisosXEdificio(piso.id_edificio);
+      if (nuevaAula.pisoId === piso.id_piso) {
+        setNuevaAula((prev) => ({ ...prev, pisoId: '', numero_aula: '' }));
+        setAulasXpiso([]);
+        setAulasEditables([]);
+      }
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al eliminar piso: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
+
+  const eliminarAula = async (aula) => {
+    const confirmado = window.confirm(`Se eliminara el aula ${aula.id_aula}. Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setSavingItemKey(`aula-delete-${aula.id_aula}`);
+      await api.delete(`ubicacion/aula/${encodeURIComponent(aula.id_aula)}`);
+      setOperationStatus({ type: 'success', message: `Aula ${aula.id_aula} eliminada.` });
+      await cargarAulasXpiso(aula.id_piso);
+    } catch (error) {
+      setOperationStatus({ type: 'error', message: `Error al eliminar aula: ${error.message}` });
+    } finally {
+      setSavingItemKey('');
+    }
+  };
   const crearAula = async() => {
     if (!nuevaAula.edificioId || !nuevaAula.pisoId || !nuevaAula.numero_aula || !nuevaAula.tipo) {
       setOperationStatus({ type: 'error', message: 'Completa todos los campos para crear el aula.' });
@@ -370,7 +504,7 @@ const Dashboard = () => {
             </button>
 
             {showUbicacionMenu && (
-              <div className={`absolute right-0 mt-2 w-[440px] max-w-[90vw] rounded-xl border shadow-lg z-20 p-4 space-y-4 ${
+              <div className={`absolute right-0 mt-2 w-[440px] max-w-[90vw] max-h-[80vh] overflow-y-auto rounded-xl border shadow-lg z-20 p-3 space-y-3 ${
                 isDark ? 'bg-ophira-bg-card border-ophira-bg-hover' : 'bg-white border-slate-200'
               }`}>
                 <div className="flex items-center justify-between">
@@ -502,6 +636,73 @@ const Dashboard = () => {
                     >
                       Crear edificio
                     </button>
+
+                    <div className={`md:col-span-2 mt-2 rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${
+                      isDark ? 'border-ophira-bg-hover bg-ophira-bg-hover/40' : 'border-slate-200 bg-slate-50'
+                    }`}>
+                      <p className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                        Edificios existentes
+                      </p>
+                      {edificiosEditables.length === 0 ? (
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay edificios registrados.</p>
+                      ) : (
+                        edificiosEditables.map((edificio) => (
+                          <div key={edificio.id_edificio} className={`rounded-lg border p-1.5 grid grid-cols-1 md:grid-cols-2 gap-1.5 ${
+                            isDark ? 'border-ophira-bg-hover' : 'border-slate-200'
+                          }`}>
+                            <input
+                              value={edificio.id_edificio}
+                              disabled
+                              className={`px-3 py-2 rounded-lg text-xs border opacity-70 ${
+                                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            />
+                            <input
+                              value={edificio.nombre || ''}
+                              onChange={(event) => handleEdificioEditableChange(edificio.id_edificio, 'nombre', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              value={edificio.cantidad_pisos || ''}
+                              onChange={(event) => handleEdificioEditableChange(edificio.id_edificio, 'cantidad_pisos', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <input
+                              value={edificio.direccion || ''}
+                              onChange={(event) => handleEdificioEditableChange(edificio.id_edificio, 'direccion', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <div className="md:col-span-2 grid grid-cols-2 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => guardarEdificio(edificio)}
+                                disabled={savingItemKey === `edificio-${edificio.id_edificio}` || savingItemKey === `edificio-delete-${edificio.id_edificio}`}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                {savingItemKey === `edificio-${edificio.id_edificio}` ? 'Guardando...' : 'Guardar'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => eliminarEdificio(edificio)}
+                                disabled={savingItemKey === `edificio-delete-${edificio.id_edificio}` || savingItemKey === `edificio-${edificio.id_edificio}`}
+                                className="inline-flex items-center justify-center gap-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                <Trash2 size={12} />
+                                {savingItemKey === `edificio-delete-${edificio.id_edificio}` ? 'Eliminando...' : 'Eliminar'}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -509,9 +710,17 @@ const Dashboard = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <select
                       value={nuevoPiso.edificioId}
-                      onChange={(event) => {
+                      onChange={async (event) => {
                         const edificioId = event.target.value;
                         setNuevoPiso((prev) => ({ ...prev, edificioId, numero_piso: '' }));
+
+                        if (!edificioId) {
+                          setPisosXedificio([]);
+                          setPisosEditables([]);
+                          return;
+                        }
+
+                        await cargarPisosXEdificio(edificioId);
                       }}
                       className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
                         isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
@@ -563,6 +772,77 @@ const Dashboard = () => {
                     >
                       Crear piso
                     </button>
+
+                    <div className={`md:col-span-2 mt-2 rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${
+                      isDark ? 'border-ophira-bg-hover bg-ophira-bg-hover/40' : 'border-slate-200 bg-slate-50'
+                    }`}>
+                      <p className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                        Pisos existentes{nuevoPiso.edificioId ? ` (${nuevoPiso.edificioId})` : ''}
+                      </p>
+                      {!nuevoPiso.edificioId ? (
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Selecciona un edificio para listar sus pisos.</p>
+                      ) : pisosEditables.length === 0 ? (
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay pisos registrados para ese edificio.</p>
+                      ) : (
+                        pisosEditables.map((piso) => (
+                          <div key={piso.id_piso} className={`rounded-lg border p-1.5 grid grid-cols-1 md:grid-cols-2 gap-1.5 ${
+                            isDark ? 'border-ophira-bg-hover' : 'border-slate-200'
+                          }`}>
+                            <input
+                              value={piso.id_piso}
+                              disabled
+                              className={`px-3 py-2 rounded-lg text-xs border opacity-70 ${
+                                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            />
+                            <input
+                              value={piso.id_edificio || ''}
+                              disabled
+                              className={`px-3 py-2 rounded-lg text-xs border opacity-70 ${
+                                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              value={piso.numero_piso || ''}
+                              onChange={(event) => handlePisoEditableChange(piso.id_piso, 'numero_piso', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              value={piso.cantidad_aulas || ''}
+                              onChange={(event) => handlePisoEditableChange(piso.id_piso, 'cantidad_aulas', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <div className="md:col-span-2 grid grid-cols-2 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => guardarPiso(piso)}
+                                disabled={savingItemKey === `piso-${piso.id_piso}` || savingItemKey === `piso-delete-${piso.id_piso}`}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                {savingItemKey === `piso-${piso.id_piso}` ? 'Guardando...' : 'Guardar'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => eliminarPiso(piso)}
+                                disabled={savingItemKey === `piso-delete-${piso.id_piso}` || savingItemKey === `piso-${piso.id_piso}`}
+                                className="inline-flex items-center justify-center gap-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                <Trash2 size={12} />
+                                {savingItemKey === `piso-delete-${piso.id_piso}` ? 'Eliminando...' : 'Eliminar'}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -590,7 +870,16 @@ const Dashboard = () => {
                     </select>
                     <select
                       value={nuevaAula.pisoId}
-                      onChange={(event) => setNuevaAula((prev) => ({ ...prev, pisoId: event.target.value, numero_aula: '' }))}
+                      onChange={async (event) => {
+                        const pisoId = event.target.value;
+                        setNuevaAula((prev) => ({ ...prev, pisoId, numero_aula: '' }));
+                        if (!pisoId) {
+                          setAulasXpiso([]);
+                          setAulasEditables([]);
+                          return;
+                        }
+                        await cargarAulasXpiso(pisoId);
+                      }}
                       disabled={!nuevaAula.edificioId}
                       className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary disabled:opacity-60 ${
                         isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
@@ -636,6 +925,73 @@ const Dashboard = () => {
                     >
                       Crear aula
                     </button>
+
+                    <div className={`md:col-span-2 mt-2 rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${
+                      isDark ? 'border-ophira-bg-hover bg-ophira-bg-hover/40' : 'border-slate-200 bg-slate-50'
+                    }`}>
+                      <p className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                        Aulas existentes{nuevaAula.pisoId ? ` (${nuevaAula.pisoId})` : ''}
+                      </p>
+                      {!nuevaAula.pisoId ? (
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Selecciona un piso para listar sus aulas.</p>
+                      ) : aulasEditables.length === 0 ? (
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay aulas registradas para ese piso.</p>
+                      ) : (
+                        aulasEditables.map((aula) => (
+                          <div key={aula.id_aula} className={`rounded-lg border p-1.5 grid grid-cols-1 md:grid-cols-2 gap-1.5 ${
+                            isDark ? 'border-ophira-bg-hover' : 'border-slate-200'
+                          }`}>
+                            <input
+                              value={aula.id_aula}
+                              disabled
+                              className={`px-3 py-2 rounded-lg text-xs border opacity-70 ${
+                                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            />
+                            <input
+                              value={aula.id_piso || ''}
+                              disabled
+                              className={`px-3 py-2 rounded-lg text-xs border opacity-70 ${
+                                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                              }`}
+                            />
+                            <input
+                              value={aula.numero_aula || ''}
+                              onChange={(event) => handleAulaEditableChange(aula.id_aula, 'numero_aula', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <input
+                              value={aula.tipo || ''}
+                              onChange={(event) => handleAulaEditableChange(aula.id_aula, 'tipo', event.target.value)}
+                              className={`px-3 py-2 rounded-lg text-xs border ${
+                                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                            <div className="md:col-span-2 grid grid-cols-2 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => guardarAula(aula)}
+                                disabled={savingItemKey === `aula-${aula.id_aula}` || savingItemKey === `aula-delete-${aula.id_aula}`}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                {savingItemKey === `aula-${aula.id_aula}` ? 'Guardando...' : 'Guardar'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => eliminarAula(aula)}
+                                disabled={savingItemKey === `aula-delete-${aula.id_aula}` || savingItemKey === `aula-${aula.id_aula}`}
+                                className="inline-flex items-center justify-center gap-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg py-1.5 text-[11px] font-medium transition"
+                              >
+                                <Trash2 size={12} />
+                                {savingItemKey === `aula-delete-${aula.id_aula}` ? 'Eliminando...' : 'Eliminar'}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

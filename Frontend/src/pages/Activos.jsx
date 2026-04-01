@@ -1,6 +1,6 @@
 import { Search, Plus, Download, Edit, Trash2, QrCode } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {api} from '../services/api';
 import { useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
@@ -16,6 +16,7 @@ const formatearFecha = (fecha) => {
 const Activos = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activos, setActivos]= useState([]);
   const [categorias, setCategorias] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,7 +154,7 @@ const Activos = () => {
       }
     }
     obtenerActivos();
-  }, []);
+  }, [location.state?.refreshActivos]);
 
   useEffect(() => {
     const obtenerCategorias = async () => {

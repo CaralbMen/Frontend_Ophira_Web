@@ -1,22 +1,51 @@
 const URL_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api/";
-import { getToken } from './authStorage';
+import { clearToken, getToken } from './authStorage';
+
+let sesionExpiradaNotificada = false;
 
 const leerMensajeBackend = (payload) => {
     if (!payload) return '';
 
     if (typeof payload === 'string') return payload;
 
-    return String(
-        payload.message ||
-        payload.mensaje ||
-        payload.msg ||
-        payload.error?.message ||
-        payload.err?.message ||
-        payload.error ||
-        payload.err ||
-        payload.detail ||
-        ''
-    ).trim();
+    const escogerTexto = (valor) => {
+        if (!valor) return '';
+        if (typeof valor === 'string') return valor.trim();
+        if (typeof valor === 'number' || typeof valor === 'boolean') return String(valor);
+        if (typeof valor === 'object') {
+            return String(
+                valor.message ||
+                valor.mensaje ||
+                valor.detail ||
+                valor.msg ||
+                valor.error ||
+                ''
+            ).trim();
+        }
+        return '';
+    };
+
+    const candidatos = [
+        payload.message,
+        payload.mensaje,
+        payload.msg,
+        payload.detail,
+        payload.error?.message,
+        payload.err?.message,
+        payload.error?.detail,
+        payload.err?.detail,
+        payload.error,
+        payload.err,
+    ];
+
+    for (const candidato of candidatos) {
+        const texto = escogerTexto(candidato);
+        if (texto && texto.toLowerCase() !== '[object object]') {
+            return texto;
+        }
+    }
+
+    return '';
 };
 
 const normalizarMensajeError = ({ status, backendMessage }) => {
@@ -54,7 +83,23 @@ const alertarError = (message) => {
     }
 };
 
-const construirErrorHttp = async (response) => {
+const manejarSesionExpirada = (backendMessage) => {
+    if (sesionExpiradaNotificada || typeof window === 'undefined') {
+        return;
+    }
+
+    sesionExpiradaNotificada = true;
+    clearToken();
+
+    const mensaje = backendMessage || 'Tu sesion expiro. Vuelve a iniciar sesion.';
+    window.alert(mensaje);
+
+    if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+    }
+};
+
+const construirErrorHttp = async (response, hadAuthToken = false) => {
     let payload = null;
 
     try {
@@ -77,6 +122,11 @@ const construirErrorHttp = async (response) => {
     error.status = response.status;
     error.payload = payload;
     error.alreadyAlerted = true;
+
+    if (response.status === 401 && hadAuthToken) {
+        manejarSesionExpirada(backendMessage);
+        return error;
+    }
 
     alertarError(message);
 
@@ -111,7 +161,7 @@ export const api = {
                 }
             });
             if (!response.ok) {
-                throw await construirErrorHttp(response);
+                throw await construirErrorHttp(response, Boolean(token));
             }
             return await response.json();
         } catch (error) {
@@ -130,7 +180,7 @@ export const api = {
                 body: JSON.stringify(data)
             })
             if (!response.ok) {
-                throw await construirErrorHttp(response);
+                throw await construirErrorHttp(response, Boolean(token));
             }
             return await response.json();
         } catch (error) {
@@ -149,7 +199,7 @@ export const api = {
                 body: JSON.stringify(data)
             })
             if (!response.ok) {
-                throw await construirErrorHttp(response);
+                throw await construirErrorHttp(response, Boolean(token));
             }
             return await response.json();
         } catch (error) {
@@ -167,7 +217,7 @@ export const api = {
                 }
             })
             if (!response.ok) {
-                throw await construirErrorHttp(response);
+                throw await construirErrorHttp(response, Boolean(token));
             }
             return await response.json();
         } catch (error) {

@@ -30,10 +30,7 @@ const normalizarEstado = (estado) => String(estado || '')
 
 const esEstadoActivo = (estado) => normalizarEstado(estado) === 'activo';
 const esEstadoMantenimiento = (estado) => normalizarEstado(estado).includes('mantenimiento');
-const esEstadoDanado = (estado) => {
-  const valor = normalizarEstado(estado);
-  return valor.includes('danad') || valor.includes('deteriorad') || valor.includes('averiad');
-};
+const esEstadoRetirado = (estado) => normalizarEstado(estado).includes('retirad');
 
 const Reportes = () => {
   const { isDark } = useTheme();
@@ -101,10 +98,9 @@ const Reportes = () => {
   const totalActivos = activosFiltradosPorRango.length || toNumber(reporteData.total_activos);
   const bienesActivos = activosFiltradosPorRango.filter((a) => esEstadoActivo(a.estado)).length || toNumber(reporteData.bienes_activos);
   const enMantenimiento = activosFiltradosPorRango.filter((a) => esEstadoMantenimiento(a.estado)).length || toNumber(reporteData.activos_en_mantenimiento);
-  const activosDanados = activosFiltradosPorRango.filter((a) => esEstadoDanado(a.estado)).length || toNumber(reporteData.activos_danados);
+  const activosRetirados = activosFiltradosPorRango.filter((a) => esEstadoRetirado(a.estado)).length || toNumber(reporteData.activos_retirados);
   const aniadidosRecientes = activosFiltradosPorRango.length || toNumber(reporteData.aniadidos_recientemente);
   const valorTotal = toNumber(reporteData.valor_total);
-  const retirados = Math.max(totalActivos - bienesActivos - enMantenimiento - activosDanados, 0);
 
   const stats = [
     {
@@ -132,10 +128,10 @@ const Reportes = () => {
       color: 'orange',
     },
     {
-      label: 'Activos Danados',
-      value: activosDanados.toLocaleString('es-MX'),
-      change: `${totalActivos > 0 ? ((activosDanados * 100) / totalActivos).toFixed(1) : '0.0'}%`,
-      description: 'Requieren reparación',
+      label: 'Activos Retirados',
+      value: activosRetirados.toLocaleString('es-MX'),
+      change: `${totalActivos > 0 ? ((activosRetirados * 100) / totalActivos).toFixed(1) : '0.0'}%`,
+      description: 'Fuera de operación',
       icon: AlertTriangle,
       color: 'red',
     },
@@ -205,8 +201,7 @@ const Reportes = () => {
   const statusDistribution = [
     { label: 'Activo', value: totalActivos > 0 ? (bienesActivos * 100) / totalActivos : 0, color: '#10b981' },
     { label: 'Mantenimiento', value: totalActivos > 0 ? (enMantenimiento * 100) / totalActivos : 0, color: '#f59e0b' },
-    { label: 'Danado', value: totalActivos > 0 ? (activosDanados * 100) / totalActivos : 0, color: '#ef4444' },
-    { label: 'Retirado', value: totalActivos > 0 ? (retirados * 100) / totalActivos : 0, color: '#6b7280' },
+    { label: 'Retirado', value: totalActivos > 0 ? (activosRetirados * 100) / totalActivos : 0, color: '#ef4444' },
   ];
 
   const estadoColorClass = (color) => {
@@ -254,7 +249,7 @@ const Reportes = () => {
     doc.text(`Total de Activos: ${totalActivos}`, 40, 90);
     doc.text(`Bienes Activos: ${bienesActivos}`, 220, 90);
     doc.text(`Mantenimiento: ${enMantenimiento}`, 400, 90);
-    doc.text(`Danados: ${activosDanados}`, 560, 90);
+    doc.text(`Retirados: ${activosRetirados}`, 560, 90);
     doc.text(`Valor Total: ${moneyMx.format(valorTotal)}`, 700, 90);
 
     autoTable(doc, {

@@ -74,6 +74,10 @@ const VerUsuario = () => {
   const [nuevoRol, setNuevoRol] = useState({ nombre: '', descripcion: '' });
   const [nuevoPuesto, setNuevoPuesto] = useState({ nombre: '', id_area: '' });
   const [nuevaArea, setNuevaArea] = useState({ nombre: '' });
+  const [rolesEditables, setRolesEditables] = useState([]);
+  const [areasEditables, setAreasEditables] = useState([]);
+  const [puestosEditables, setPuestosEditables] = useState([]);
+  const [guardandoCatalogoKey, setGuardandoCatalogoKey] = useState('');
   const [actividadStats, setActividadStats] = useState({ auditoriasCompletadas: 0, activosVerificados: 0 });
 
   const [formData, setFormData] = useState({
@@ -110,9 +114,16 @@ const VerUsuario = () => {
         api.get('areas')
       ]);
 
-      setRoles(Array.isArray(rolesData) ? rolesData : []);
-      setPuestos(Array.isArray(puestosData) ? puestosData : []);
-      setAreas(Array.isArray(areasData) ? areasData : []);
+      const rolesList = Array.isArray(rolesData) ? rolesData : [];
+      const puestosList = Array.isArray(puestosData) ? puestosData : [];
+      const areasList = Array.isArray(areasData) ? areasData : [];
+
+      setRoles(rolesList);
+      setPuestos(puestosList);
+      setAreas(areasList);
+      setRolesEditables(rolesList.map((item) => ({ ...item, _nombreOriginal: item.nombre })));
+      setAreasEditables(areasList.map((item) => ({ ...item, nombre_area: item.nombre_area || item.nombre || '' })));
+      setPuestosEditables(puestosList.map((item) => ({ ...item, nombre: item.nombre || item.nombre_puesto || '' })));
     } catch (error) {
       console.error('Error al cargar catalogos:', error);
       setCatalogoStatus({ type: 'error', message: `No se pudieron cargar catalogos: ${error.message}` });
@@ -206,7 +217,7 @@ const VerUsuario = () => {
     }
 
     try {
-      await api.post('areas', { nombre: nuevaArea.nombre.trim() });
+      await api.post('areas', { nombre_area: nuevaArea.nombre.trim() });
       setNuevaArea({ nombre: '' });
       setCatalogoStatus({ type: 'success', message: 'Area creada correctamente.' });
       await cargarCatalogos();
@@ -223,7 +234,7 @@ const VerUsuario = () => {
 
     try {
       await api.post('puestos', {
-        nombre_puesto: nuevoPuesto.nombre.trim(),
+        nombre: nuevoPuesto.nombre.trim(),
         id_area: Number(nuevoPuesto.id_area)
       });
       setNuevoPuesto({ nombre: '', id_area: '' });
@@ -231,6 +242,144 @@ const VerUsuario = () => {
       await cargarCatalogos();
     } catch (error) {
       setCatalogoStatus({ type: 'error', message: `Error al crear puesto: ${error.message}` });
+    }
+  };
+
+  const handleRoleEditableChange = (index, field, value) => {
+    setRolesEditables((prev) => prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+  };
+
+  const handleAreaEditableChange = (index, value) => {
+    setAreasEditables((prev) => prev.map((item, idx) => (idx === index ? { ...item, nombre_area: value } : item)));
+  };
+
+  const handlePuestoEditableChange = (index, field, value) => {
+    setPuestosEditables((prev) => prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+  };
+
+  const guardarRolExistente = async (rol, index) => {
+    if (!String(rol.nombre || '').trim() || !String(rol.descripcion || '').trim()) {
+      setCatalogoStatus({ type: 'error', message: 'El rol requiere nombre y descripcion.' });
+      return;
+    }
+
+    try {
+      setGuardandoCatalogoKey(`rol-${index}`);
+      await api.put(`roles/${encodeURIComponent(rol._nombreOriginal || rol.nombre)}`, {
+        nombreNuevo: String(rol.nombre).trim(),
+        descripcion: String(rol.descripcion).trim()
+      });
+      setCatalogoStatus({ type: 'success', message: 'Rol actualizado correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al actualizar rol: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
+    }
+  };
+
+  const guardarAreaExistente = async (area, index) => {
+    if (!String(area.nombre_area || '').trim()) {
+      setCatalogoStatus({ type: 'error', message: 'El area requiere nombre.' });
+      return;
+    }
+
+    try {
+      setGuardandoCatalogoKey(`area-${index}`);
+      await api.put(`areas/${area.id_area}`, { nombre_area: String(area.nombre_area).trim() });
+      setCatalogoStatus({ type: 'success', message: 'Area actualizada correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al actualizar area: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
+    }
+  };
+
+  const guardarPuestoExistente = async (puesto, index) => {
+    if (!String(puesto.nombre || '').trim() || !puesto.id_area) {
+      setCatalogoStatus({ type: 'error', message: 'El puesto requiere nombre y area.' });
+      return;
+    }
+
+    try {
+      setGuardandoCatalogoKey(`puesto-${index}`);
+      await api.put(`puestos/${puesto.id_puesto}`, {
+        nombre: String(puesto.nombre).trim(),
+        id_area: Number(puesto.id_area)
+      });
+      setCatalogoStatus({ type: 'success', message: 'Puesto actualizado correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al actualizar puesto: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
+    }
+  };
+
+  const eliminarRolExistente = async (rol, index) => {
+    const nombreRol = String(rol._nombreOriginal || rol.nombre || '').trim();
+    if (!nombreRol) {
+      setCatalogoStatus({ type: 'error', message: 'No se pudo identificar el rol a eliminar.' });
+      return;
+    }
+
+    const confirmado = window.confirm(`Se eliminara el rol "${nombreRol}". Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setGuardandoCatalogoKey(`rol-delete-${index}`);
+      await api.delete(`roles/${encodeURIComponent(nombreRol)}`);
+      setCatalogoStatus({ type: 'success', message: 'Rol eliminado correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al eliminar rol: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
+    }
+  };
+
+  const eliminarAreaExistente = async (area, index) => {
+    const nombreArea = String(area.nombre_area || area.nombre || '').trim();
+    if (!nombreArea) {
+      setCatalogoStatus({ type: 'error', message: 'No se pudo identificar el area a eliminar.' });
+      return;
+    }
+
+    const confirmado = window.confirm(`Se eliminara el area "${nombreArea}". Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setGuardandoCatalogoKey(`area-delete-${index}`);
+      await api.delete(`areas/${encodeURIComponent(nombreArea)}`);
+      setCatalogoStatus({ type: 'success', message: 'Area eliminada correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al eliminar area: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
+    }
+  };
+
+  const eliminarPuestoExistente = async (puesto, index) => {
+    const nombrePuesto = String(puesto.nombre || puesto.nombre_puesto || '').trim();
+    if (!nombrePuesto) {
+      setCatalogoStatus({ type: 'error', message: 'No se pudo identificar el puesto a eliminar.' });
+      return;
+    }
+
+    const confirmado = window.confirm(`Se eliminara el puesto "${nombrePuesto}". Deseas continuar?`);
+    if (!confirmado) return;
+
+    try {
+      setGuardandoCatalogoKey(`puesto-delete-${index}`);
+      await api.delete(`puestos/${encodeURIComponent(nombrePuesto)}`);
+      setCatalogoStatus({ type: 'success', message: 'Puesto eliminado correctamente.' });
+      await cargarCatalogos();
+    } catch (error) {
+      setCatalogoStatus({ type: 'error', message: `Error al eliminar puesto: ${error.message}` });
+    } finally {
+      setGuardandoCatalogoKey('');
     }
   };
 
@@ -439,36 +588,88 @@ const VerUsuario = () => {
           {quickFormOpen === 'rol' && (
             <div className={`rounded-lg border p-4 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
               <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Nuevo rol</h3>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Nombre"
-                  value={nuevoRol.nombre}
-                  onChange={(e) => setNuevoRol((prev) => ({ ...prev, nombre: e.target.value }))}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-                <input
-                  type="text"
-                  placeholder="Descripcion"
-                  value={nuevoRol.descripcion}
-                  onChange={(e) => setNuevoRol((prev) => ({ ...prev, descripcion: e.target.value }))}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-                <button
-                  type="button"
-                  onClick={crearRol}
-                  className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
-                >
-                  Crear rol
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre"
+                    value={nuevoRol.nombre}
+                    onChange={(e) => setNuevoRol((prev) => ({ ...prev, nombre: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Descripcion"
+                    value={nuevoRol.descripcion}
+                    onChange={(e) => setNuevoRol((prev) => ({ ...prev, descripcion: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                  <button
+                    type="button"
+                    onClick={crearRol}
+                    className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
+                  >
+                    Crear rol
+                  </button>
+                </div>
+
+                <div className={`rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${isDark ? 'border-slate-700 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
+                <p className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Roles existentes</p>
+                {rolesEditables.length === 0 ? (
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay roles registrados.</p>
+                ) : (
+                  rolesEditables.map((rol, index) => (
+                    <div key={`${rol.id_rol ?? rol.nombre}-${index}`} className={`rounded-lg border p-1.5 space-y-1.5 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <input
+                        type="text"
+                        value={rol.nombre || ''}
+                        onChange={(e) => handleRoleEditableChange(index, 'nombre', e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark
+                            ? 'bg-slate-700 border-slate-600 text-white'
+                            : 'bg-white border-gray-300 text-slate-900'
+                        } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      />
+                      <input
+                        type="text"
+                        value={rol.descripcion || ''}
+                        onChange={(e) => handleRoleEditableChange(index, 'descripcion', e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark
+                            ? 'bg-slate-700 border-slate-600 text-white'
+                            : 'bg-white border-gray-300 text-slate-900'
+                        } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      />
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => guardarRolExistente(rol, index)}
+                          disabled={guardandoCatalogoKey === `rol-${index}` || guardandoCatalogoKey === `rol-delete-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `rol-${index}` ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => eliminarRolExistente(rol, index)}
+                          disabled={guardandoCatalogoKey === `rol-delete-${index}` || guardandoCatalogoKey === `rol-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `rol-delete-${index}` ? 'Eliminando...' : 'Eliminar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+                </div>
               </div>
             </div>
           )}
@@ -476,25 +677,67 @@ const VerUsuario = () => {
           {quickFormOpen === 'area' && (
             <div className={`rounded-lg border p-4 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
               <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Nueva area</h3>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Nombre del area"
-                  value={nuevaArea.nombre}
-                  onChange={(e) => setNuevaArea({ nombre: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-                <button
-                  type="button"
-                  onClick={crearArea}
-                  className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
-                >
-                  Crear area
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre del area"
+                    value={nuevaArea.nombre}
+                    onChange={(e) => setNuevaArea({ nombre: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                  <button
+                    type="button"
+                    onClick={crearArea}
+                    className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
+                  >
+                    Crear area
+                  </button>
+                </div>
+
+                <div className={`rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${isDark ? 'border-slate-700 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
+                <p className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Areas existentes</p>
+                {areasEditables.length === 0 ? (
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay areas registradas.</p>
+                ) : (
+                  areasEditables.map((area, index) => (
+                    <div key={`${area.id_area ?? index}`} className={`rounded-lg border p-1.5 space-y-1.5 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <input
+                        type="text"
+                        value={area.nombre_area || ''}
+                        onChange={(e) => handleAreaEditableChange(index, e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark
+                            ? 'bg-slate-700 border-slate-600 text-white'
+                            : 'bg-white border-gray-300 text-slate-900'
+                        } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      />
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => guardarAreaExistente(area, index)}
+                          disabled={guardandoCatalogoKey === `area-${index}` || guardandoCatalogoKey === `area-delete-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `area-${index}` ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => eliminarAreaExistente(area, index)}
+                          disabled={guardandoCatalogoKey === `area-delete-${index}` || guardandoCatalogoKey === `area-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `area-delete-${index}` ? 'Eliminando...' : 'Eliminar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+                </div>
               </div>
             </div>
           )}
@@ -502,41 +745,99 @@ const VerUsuario = () => {
           {quickFormOpen === 'puesto' && (
             <div className={`rounded-lg border p-4 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
               <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Nuevo puesto</h3>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Nombre del puesto"
-                  value={nuevoPuesto.nombre}
-                  onChange={(e) => setNuevoPuesto((prev) => ({ ...prev, nombre: e.target.value }))}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-                <select
-                  value={nuevoPuesto.id_area}
-                  onChange={(e) => setNuevoPuesto((prev) => ({ ...prev, id_area: e.target.value }))}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-white'
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } focus:outline-none focus:ring-2 focus:ring-green-500`}
-                >
-                  <option value="">Seleccionar area</option>
-                  {areas.map((area) => (
-                    <option key={area.id_area ?? area.id} value={area.id_area ?? area.id}>
-                      {area.nombre}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={crearPuesto}
-                  className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
-                >
-                  Crear puesto
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre del puesto"
+                    value={nuevoPuesto.nombre}
+                    onChange={(e) => setNuevoPuesto((prev) => ({ ...prev, nombre: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                  <select
+                    value={nuevoPuesto.id_area}
+                    onChange={(e) => setNuevoPuesto((prev) => ({ ...prev, id_area: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  >
+                    <option value="">Seleccionar area</option>
+                    {areas.map((area) => (
+                      <option key={area.id_area ?? area.id} value={area.id_area ?? area.id}>
+                        {area.nombre || area.nombre_area}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={crearPuesto}
+                    className="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
+                  >
+                    Crear puesto
+                  </button>
+                </div>
+
+                <div className={`rounded-lg border p-2 space-y-1.5 max-h-56 overflow-y-auto ${isDark ? 'border-slate-700 bg-slate-900/30' : 'border-slate-200 bg-slate-50'}`}>
+                <p className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Puestos existentes</p>
+                {puestosEditables.length === 0 ? (
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No hay puestos registrados.</p>
+                ) : (
+                  puestosEditables.map((puesto, index) => (
+                    <div key={`${puesto.id_puesto ?? index}`} className={`rounded-lg border p-1.5 space-y-1.5 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <input
+                        type="text"
+                        value={puesto.nombre || ''}
+                        onChange={(e) => handlePuestoEditableChange(index, 'nombre', e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark
+                            ? 'bg-slate-700 border-slate-600 text-white'
+                            : 'bg-white border-gray-300 text-slate-900'
+                        } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      />
+                      <select
+                        value={puesto.id_area || ''}
+                        onChange={(e) => handlePuestoEditableChange(index, 'id_area', e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs ${
+                          isDark
+                            ? 'bg-slate-700 border-slate-600 text-white'
+                            : 'bg-white border-gray-300 text-slate-900'
+                        } focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      >
+                        <option value="">Seleccionar area</option>
+                        {areas.map((area) => (
+                          <option key={area.id_area ?? area.id} value={area.id_area ?? area.id}>
+                            {area.nombre || area.nombre_area}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => guardarPuestoExistente(puesto, index)}
+                          disabled={guardandoCatalogoKey === `puesto-${index}` || guardandoCatalogoKey === `puesto-delete-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `puesto-${index}` ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => eliminarPuestoExistente(puesto, index)}
+                          disabled={guardandoCatalogoKey === `puesto-delete-${index}` || guardandoCatalogoKey === `puesto-${index}`}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-xs font-medium"
+                        >
+                          {guardandoCatalogoKey === `puesto-delete-${index}` ? 'Eliminando...' : 'Eliminar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+                </div>
               </div>
             </div>
           )}
