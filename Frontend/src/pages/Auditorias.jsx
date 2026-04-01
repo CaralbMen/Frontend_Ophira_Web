@@ -9,9 +9,16 @@ const Auditorias = () => {
   const navigate = useNavigate();
   const [auditorias, setAuditorias] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('Todas');
+  const [yearFilter, setYearFilter] = useState('Todos');
+  const [semesterFilter, setSemesterFilter] = useState('Todos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const obtenerFechaAuditoria = (auditoria) => {
+    const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
+    const fecha = fechaRaw ? new Date(fechaRaw) : null;
+    return fecha && !Number.isNaN(fecha.getTime()) ? fecha : null;
+  };
 
   useEffect(() => {
     const cargarAuditorias = async () => {
@@ -33,13 +40,21 @@ const Auditorias = () => {
     cargarAuditorias();
   }, []);
 
+  const yearOptions = useMemo(() => {
+    const years = Array.from(new Set(
+      auditorias
+        .map((auditoria) => obtenerFechaAuditoria(auditoria)?.getFullYear())
+        .filter((year) => Number.isFinite(year))
+    ));
+
+    return years.sort((a, b) => b - a);
+  }, [auditorias]);
+
   const auditoriasFiltradas = useMemo(() => {
     const termino = searchTerm.trim().toLowerCase();
-    const now = new Date();
 
     return auditorias.filter((auditoria) => {
-      const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
-      const fecha = fechaRaw ? new Date(fechaRaw) : null;
+      const fecha = obtenerFechaAuditoria(auditoria);
 
       const coincideTermino = !termino || [
         String(auditoria.id_auditoria ?? ''),
@@ -53,22 +68,25 @@ const Auditorias = () => {
         return false;
       }
 
-      if (dateFilter === 'Todas' || !fecha || Number.isNaN(fecha.getTime())) {
+      if (!fecha) {
         return true;
       }
 
-      if (dateFilter === 'Esta semana') {
-        const diffDays = (now.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24);
-        return diffDays <= 7;
+      if (yearFilter !== 'Todos' && String(fecha.getFullYear()) !== yearFilter) {
+        return false;
       }
 
-      if (dateFilter === 'Este mes') {
-        return fecha.getMonth() === now.getMonth() && fecha.getFullYear() === now.getFullYear();
+      if (semesterFilter === 'S1') {
+        return fecha.getMonth() >= 0 && fecha.getMonth() <= 5;
+      }
+
+      if (semesterFilter === 'S2') {
+        return fecha.getMonth() >= 6 && fecha.getMonth() <= 11;
       }
 
       return true;
     });
-  }, [auditorias, searchTerm, dateFilter]);
+  }, [auditorias, searchTerm, yearFilter, semesterFilter]);
 
   return (
     <div className="space-y-4">
@@ -111,19 +129,33 @@ const Auditorias = () => {
             />
           </div>
 
-          {/* Filtro de fecha */}
+          {/* Filtros por periodo */}
           <div className="flex gap-2">
             <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
               className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
               isDark
                 ? 'bg-slate-700 border-slate-600 text-slate-100'
                 : 'bg-white border-slate-200 text-slate-900'
             }`}>
-              <option>Todas</option>
-              <option>Esta semana</option>
-              <option>Este mes</option>
+              <option value="Todos">Todos los años</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className={`px-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
+              isDark
+                ? 'bg-slate-700 border-slate-600 text-slate-100'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              <option value="Todos">Todos los semestres</option>
+              <option value="S1">Semestre 1 (Ene-Jun)</option>
+              <option value="S2">Semestre 2 (Jul-Dic)</option>
             </select>
           </div>
         </div>
@@ -193,8 +225,7 @@ const Auditorias = () => {
               )}
 
               {!loading && !error && auditoriasFiltradas.map((auditoria) => {
-                const fechaRaw = auditoria.fecha_auditoria || auditoria.fecha_registro || auditoria.created_at || null;
-                const fecha = fechaRaw ? new Date(fechaRaw) : null;
+                const fecha = obtenerFechaAuditoria(auditoria);
                 const nombreCompleto = [auditoria.nombre_usuario || auditoria.nombre, auditoria.apellido_paterno]
                   .filter(Boolean)
                   .join(' ')

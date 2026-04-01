@@ -747,85 +747,7 @@ const VerActivo = () => {
                 </select>
               </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-slate-300' : 'text-slate-700'
-                }`}>
-                  Estado
-                </label>
-                <select
-                  name="id_estado_activo"
-                  value={formData.id_estado_activo}
-                  onChange={handleChange}
-                  disabled={isReadOnly || cargandoCatalogos}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDark 
-                      ? 'bg-slate-700 border-slate-600 text-white' 
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                    required={!isReadOnly}
-                >
-                  <option value="">Seleccionar estado</option>
-                  {estadosActivo.map((estado) => (
-                    <option key={estado.id} value={estado.id}>
-                      {estado.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-slate-300' : 'text-slate-700'
-                }`}>
-                  Aula en que se ubica
-                </label>
-                <select
-                  name="id_aula"
-                  value={formData.id_aula}
-                  onChange={handleChange}
-                  disabled={isReadOnly || cargandoCatalogos}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDark 
-                      ? 'bg-slate-700 border-slate-600 text-white' 
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                  required={!isReadOnly}
-                >
-                  <option value="">Seleccionar aula</option>
-                  {aulas.map((aula) => (
-                    <option key={aula.id} value={aula.id}>
-                      {aula.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDark ? 'text-slate-300' : 'text-slate-700'
-                }`}>
-                  Responsable
-                </label>
-                <select
-                  name="id_responsable"
-                  value={formData.id_responsable}
-                  onChange={handleChange}
-                  disabled={isReadOnly || cargandoCatalogos}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDark 
-                      ? 'bg-slate-700 border-slate-600 text-white' 
-                      : 'bg-white border-gray-300 text-slate-900'
-                  } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                  required={!isReadOnly}
-                >
-                  <option value="">Seleccionar responsable</option>
-                  {encargados.map((encargado) => (
-                    <option key={encargado.id_usuario} value={encargado.id_usuario}>
-                      {encargado.nombre_usuario} - {encargado.puesto} de {encargado.area}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              
               <div className="flex items-center gap-3 md:col-span-2">
                 <input
                   type="checkbox"
@@ -986,16 +908,105 @@ const VerActivo = () => {
             </div>
               </div>
 
-              {id && (
-                <div className="lg:col-span-1 sticky top-6">
+              <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-6 self-start">
+                {id && (
                   <QRCodeComponent 
                     value={id}
                     size={180}
                     title={`ID Activo: ${id}`}
                     showDownload={true}
                   />
+                )}
+
+                <div className={`${
+                  isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-gray-200'
+                } rounded-lg border p-4 space-y-4`}>
+                  <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                    Ubicación y Control
+                  </h3>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Estado
+                    </label>
+                    <select
+                      name="id_estado_activo"
+                      value={formData.id_estado_activo}
+                      onChange={handleChange}
+                      disabled={isReadOnly || cargandoCatalogos}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDark 
+                          ? 'bg-slate-700 border-slate-600 text-white' 
+                          : 'bg-white border-gray-300 text-slate-900'
+                      } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      required={!isReadOnly}
+                    >
+                      <option value="">Seleccionar estado</option>
+                      {estadosActivo.map((estado) => (
+                        <option key={estado.id} value={estado.id}>
+                          {estado.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Aula en que se ubica
+                    </label>
+                    <select
+                      name="id_aula"
+                      value={formData.id_aula}
+                      onChange={handleChange}
+                      disabled={isReadOnly || cargandoCatalogos}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDark 
+                          ? 'bg-slate-700 border-slate-600 text-white' 
+                          : 'bg-white border-gray-300 text-slate-900'
+                      } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      required={!isReadOnly}
+                    >
+                      <option value="">Seleccionar aula</option>
+                      {aulas.map((aula) => (
+                        <option key={aula.id} value={aula.id}>
+                          {aula.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Responsable
+                    </label>
+                    <select
+                      name="id_responsable"
+                      value={formData.id_responsable}
+                      onChange={handleChange}
+                      disabled={isReadOnly || cargandoCatalogos}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDark 
+                          ? 'bg-slate-700 border-slate-600 text-white' 
+                          : 'bg-white border-gray-300 text-slate-900'
+                      } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      required={!isReadOnly}
+                    >
+                      <option value="">Seleccionar responsable</option>
+                      {encargados.map((encargado) => (
+                        <option key={encargado.id_usuario} value={encargado.id_usuario}>
+                          {encargado.nombre_usuario} - {encargado.puesto} de {encargado.area}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-700">

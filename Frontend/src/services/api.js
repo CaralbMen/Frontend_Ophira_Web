@@ -1,4 +1,4 @@
-const URL_BASE= "http://localhost:4000/api/";
+const URL_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api/";
 import { getToken } from './authStorage';
 
 const leerMensajeBackend = (payload) => {
@@ -100,13 +100,13 @@ const manejarErrorDeRed = (error) => {
     throw nextError;
 };
 
-export const api={
+export const api = {
     get: async (endpoint) => {
         const token = getToken();
         try {
-            const response = await fetch(`${URL_BASE}${endpoint}`,{
-                headers:{
-                    'Authorization': token?`Bearer ${token}`: '',
+            const response = await fetch(`${URL_BASE}${endpoint}`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
                     'Content-Type': 'application/json'
                 }
             });
@@ -118,13 +118,13 @@ export const api={
             manejarErrorDeRed(error);
         }
     },
-    post: async (endpoint, data)=>{
+    post: async (endpoint, data) => {
         const token = getToken();
-        try{
-            const response= await fetch(`${URL_BASE}${endpoint}`,{
+        try {
+            const response = await fetch(`${URL_BASE}${endpoint}`, {
                 method: 'POST',
-                headers:{
-                    'Authorization': token? `Bearer ${token}`: '',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
@@ -137,13 +137,13 @@ export const api={
             manejarErrorDeRed(error);
         }
     },
-    put: async (endpoint, data)=>{
+    put: async (endpoint, data) => {
         const token = getToken();
-        try{
-            const response= await fetch(`${URL_BASE}${endpoint}`,{
+        try {
+            const response = await fetch(`${URL_BASE}${endpoint}`, {
                 method: 'PUT',
-                headers:{
-                    'Authorization': token? `Bearer ${token}`: '',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
@@ -156,13 +156,13 @@ export const api={
             manejarErrorDeRed(error);
         }
     },
-    delete: async (endpoint)=>{
+    delete: async (endpoint) => {
         const token = getToken();
-        try{
-            const response= await fetch(`${URL_BASE}${endpoint}`,{
+        try {
+            const response = await fetch(`${URL_BASE}${endpoint}`, {
                 method: 'DELETE',
-                headers:{
-                    'Authorization': token? `Bearer ${token}`: '',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
                     'Content-Type': 'application/json'
                 }
             })
@@ -172,6 +172,6 @@ export const api={
             return await response.json();
         } catch (error) {
             manejarErrorDeRed(error);
-        }  
+        }
     }
 }

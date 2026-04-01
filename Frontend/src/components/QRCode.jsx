@@ -46,8 +46,8 @@ const QRCodeComponent = ({ value, size = 200, title = 'Código QR', showDownload
         </p>
       )}
       
-      <div ref={qrRef} className="p-3 bg-white rounded-lg">
-        <canvas ref={canvasRef} />
+      <div ref={qrRef} className="p-3 bg-white rounded-lg leading-none">
+        <canvas ref={canvasRef} className="block" />
       </div>
 
       {showDownload && (

@@ -18,6 +18,33 @@ const formatearFecha = (fecha) => {
   });
 };
 
+const contarActivosVerificados = (estadosFuente) => {
+  if (!estadosFuente) return 0;
+
+  let estados = estadosFuente;
+  if (typeof estados === 'string') {
+    try {
+      estados = JSON.parse(estados);
+    } catch {
+      return 0;
+    }
+  }
+
+  if (Array.isArray(estados)) {
+    return estados.reduce((acc, item) => {
+      if (!item || typeof item !== 'object') return acc + 1;
+      if ('estado' in item || 'id_activo' in item || 'id' in item) return acc + 1;
+      return acc + Object.keys(item).length;
+    }, 0);
+  }
+
+  if (estados && typeof estados === 'object') {
+    return Object.keys(estados).length;
+  }
+
+  return 0;
+};
+
 const mapUsuarioToForm = (usuario = {}) => ({
   nombre_usuario: usuario.nombre_usuario || '',
   apaterno_usuario: usuario.apellido_paterno || usuario.apaterno_usuario || '',
@@ -47,6 +74,7 @@ const VerUsuario = () => {
   const [nuevoRol, setNuevoRol] = useState({ nombre: '', descripcion: '' });
   const [nuevoPuesto, setNuevoPuesto] = useState({ nombre: '', id_area: '' });
   const [nuevaArea, setNuevaArea] = useState({ nombre: '' });
+  const [actividadStats, setActividadStats] = useState({ auditoriasCompletadas: 0, activosVerificados: 0 });
 
   const [formData, setFormData] = useState({
     nombre_usuario: '',
@@ -95,6 +123,36 @@ const VerUsuario = () => {
     cargarCatalogos();
   }, []);
 
+  const cargarActividadUsuario = async (usuarioId) => {
+    if (!usuarioId) {
+      setActividadStats({ auditoriasCompletadas: 0, activosVerificados: 0 });
+      return;
+    }
+
+    try {
+      const auditoriasResponse = await api.get('auditorias');
+      const auditorias = Array.isArray(auditoriasResponse?.rows) ? auditoriasResponse.rows : [];
+
+      const auditoriasUsuario = auditorias.filter((auditoria) => String(auditoria.id_usuario_auditor) === String(usuarioId));
+      const auditoriasCompletadas = auditoriasUsuario.filter((auditoria) => {
+        const estado = String(auditoria.estado_general || '').toLowerCase().trim();
+        return !estado || estado === 'finalizada' || estado === 'completada';
+      });
+
+      const activosVerificados = auditoriasCompletadas.reduce((acc, auditoria) => {
+        return acc + contarActivosVerificados(auditoria.estados_activos);
+      }, 0);
+
+      setActividadStats({
+        auditoriasCompletadas: auditoriasCompletadas.length,
+        activosVerificados,
+      });
+    } catch (error) {
+      console.error('Error al cargar actividad del usuario:', error);
+      setActividadStats({ auditoriasCompletadas: 0, activosVerificados: 0 });
+    }
+  };
+
 
   useEffect(() => {
     const cargarUsuario = async () => {
@@ -103,6 +161,7 @@ const VerUsuario = () => {
           const usuarioResponse = await api.get(`usuarios/${id}`);
           setFormData(mapUsuarioToForm(usuarioResponse));
           setPasswordOriginal(usuarioResponse?.password || '');
+          await cargarActividadUsuario(usuarioResponse?.id_usuario || id);
           return;
         } catch (error) {
           console.error('Error al cargar usuario por id:', error);
@@ -112,6 +171,7 @@ const VerUsuario = () => {
       if (usuarioExistente) {
         setFormData(mapUsuarioToForm(usuarioExistente));
         setPasswordOriginal(usuarioExistente?.password || '');
+        await cargarActividadUsuario(usuarioExistente?.id_usuario);
       }
     };
 
@@ -482,6 +542,8 @@ const VerUsuario = () => {
           )}
         </div>
 
+       
+
         <form onSubmit={handleSubmit}>
           <div className={`${
             isDark ? 'bg-slate-800' : 'bg-white'
@@ -683,24 +745,29 @@ const VerUsuario = () => {
               </div>
 
               {modo === 'editar' && (
-                <div className="md:col-span-2">
-                  <label
-                    className={`inline-flex items-center gap-3 text-sm font-medium ${
-                      isDark ? 'text-slate-300' : 'text-slate-700'
-                    } ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                  >
-                    <input
-                      type="checkbox"
-                      name="activo_usuario"
-                      checked={Boolean(formData.activo_usuario)}
-                      onChange={handleChange}
-                      disabled={isReadOnly}
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span>
-                      Usuario {formData.activo_usuario ? 'Activo' : 'Inactivo'}
-                    </span>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDark ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    Estado del usuario
                   </label>
+                  <select
+                    name="activo_usuario"
+                    value={String(Boolean(formData.activo_usuario))}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      activo_usuario: e.target.value === 'true'
+                    }))}
+                    disabled={isReadOnly}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      isDark
+                        ? 'bg-slate-700 border-slate-600 text-white'
+                        : 'bg-white border-gray-300 text-slate-900'
+                    } ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
                 </div>
               )}
             </div>

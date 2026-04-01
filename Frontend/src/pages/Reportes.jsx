@@ -1,10 +1,9 @@
-import { FileText, Download, TrendingUp, CheckCircle, AlertCircle, DollarSign, MoreVertical } from 'lucide-react';
+import { FileText, Download, TrendingUp, CheckCircle, AlertCircle, AlertTriangle, DollarSign, MoreVertical } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useNavigate } from 'react-router-dom';
 
 const toNumber = (value) => {
   const parsed = Number(value ?? 0);
@@ -23,10 +22,25 @@ const formatearFecha = (fecha) => {
   return Number.isNaN(date.getTime()) ? 'Sin fecha' : date.toLocaleDateString('es-MX');
 };
 
+const normalizarEstado = (estado) => String(estado || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim();
+
+const esEstadoActivo = (estado) => normalizarEstado(estado) === 'activo';
+const esEstadoMantenimiento = (estado) => normalizarEstado(estado).includes('mantenimiento');
+const esEstadoDanado = (estado) => {
+  const valor = normalizarEstado(estado);
+  return valor.includes('danad') || valor.includes('deteriorad') || valor.includes('averiad');
+};
+
 const Reportes = () => {
-  const navigate = useNavigate();
   const { isDark } = useTheme();
   const [dateRange, setDateRange] = useState('30');
+  const [filtroAula, setFiltroAula] = useState('');
+  const [filtroResponsable, setFiltroResponsable] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('');
   const [reporteData, setReporteData] = useState({
     total_activos: '0',
     bienes_activos: '0',
@@ -85,11 +99,12 @@ const Reportes = () => {
   }, [activos, dateRange]);
 
   const totalActivos = activosFiltradosPorRango.length || toNumber(reporteData.total_activos);
-  const bienesActivos = activosFiltradosPorRango.filter((a) => String(a.estado).toLowerCase() === 'activo').length || toNumber(reporteData.bienes_activos);
-  const enMantenimiento = activosFiltradosPorRango.filter((a) => String(a.estado).toLowerCase() === 'mantenimiento').length || toNumber(reporteData.activos_en_mantenimiento);
+  const bienesActivos = activosFiltradosPorRango.filter((a) => esEstadoActivo(a.estado)).length || toNumber(reporteData.bienes_activos);
+  const enMantenimiento = activosFiltradosPorRango.filter((a) => esEstadoMantenimiento(a.estado)).length || toNumber(reporteData.activos_en_mantenimiento);
+  const activosDanados = activosFiltradosPorRango.filter((a) => esEstadoDanado(a.estado)).length || toNumber(reporteData.activos_danados);
   const aniadidosRecientes = activosFiltradosPorRango.length || toNumber(reporteData.aniadidos_recientemente);
   const valorTotal = toNumber(reporteData.valor_total);
-  const retirados = Math.max(totalActivos - bienesActivos - enMantenimiento, 0);
+  const retirados = Math.max(totalActivos - bienesActivos - enMantenimiento - activosDanados, 0);
 
   const stats = [
     {
@@ -115,6 +130,14 @@ const Reportes = () => {
       description: 'Activos en mantenimiento',
       icon: AlertCircle,
       color: 'orange',
+    },
+    {
+      label: 'Activos Danados',
+      value: activosDanados.toLocaleString('es-MX'),
+      change: `${totalActivos > 0 ? ((activosDanados * 100) / totalActivos).toFixed(1) : '0.0'}%`,
+      description: 'Requieren reparación',
+      icon: AlertTriangle,
+      color: 'red',
     },
     {
       label: 'Valor Total',
@@ -143,21 +166,46 @@ const Reportes = () => {
 
   const maxValue = Math.max(...acquisitionData.map(d => d.value), 1);
 
-  const recentActivities = activosFiltradosPorRango.slice(0, 10).map((activo) => ({
-    activo: activo.nombre,
-    responsable: activo.responsable,
-    id: activo.id_activo,
-    categoria: activo.categoria,
-    estado: activo.estado,
-    estadoColor: activo.color,
-    ubicacion: `${activo.aula} (${activo.tipo_aula})`,
-    fecha: formatearFecha(activo.fecha_registro),
-    accion: 'Registro de activo',
-  }));
+  const nombreResponsable = (activo) => {
+    const nombre = [activo.responsable, activo.responsable_apellido].filter(Boolean).join(' ').trim();
+    return nombre || 'Sin responsable';
+  };
+
+  const aulaTexto = (activo) => {
+    if (activo.aula && activo.tipo_aula) return `${activo.aula} (${activo.tipo_aula})`;
+    if (activo.aula) return `Aula ${activo.aula}`;
+    return 'Sin aula';
+  };
+
+  const opcionesAula = useMemo(() => {
+    const lista = Array.from(new Set(activos.map((a) => aulaTexto(a)))).filter(Boolean);
+    return lista.sort((a, b) => a.localeCompare(b, 'es-MX'));
+  }, [activos]);
+
+  const opcionesResponsable = useMemo(() => {
+    const lista = Array.from(new Set(activos.map((a) => nombreResponsable(a)))).filter(Boolean);
+    return lista.sort((a, b) => a.localeCompare(b, 'es-MX'));
+  }, [activos]);
+
+  const opcionesEstado = useMemo(() => {
+    const lista = Array.from(new Set(activos.map((a) => a.estado).filter(Boolean)));
+    return lista.sort((a, b) => a.localeCompare(b, 'es-MX'));
+  }, [activos]);
+
+  const activosTablaFiltrados = useMemo(() => {
+    return activos.filter((activo) => {
+      const cumpleAula = !filtroAula || aulaTexto(activo) === filtroAula;
+      const cumpleResponsable = !filtroResponsable || nombreResponsable(activo) === filtroResponsable;
+      const cumpleEstado = !filtroEstado || String(activo.estado || '').toLowerCase() === filtroEstado.toLowerCase();
+
+      return cumpleAula && cumpleResponsable && cumpleEstado;
+    });
+  }, [activos, filtroAula, filtroResponsable, filtroEstado]);
 
   const statusDistribution = [
     { label: 'Activo', value: totalActivos > 0 ? (bienesActivos * 100) / totalActivos : 0, color: '#10b981' },
     { label: 'Mantenimiento', value: totalActivos > 0 ? (enMantenimiento * 100) / totalActivos : 0, color: '#f59e0b' },
+    { label: 'Danado', value: totalActivos > 0 ? (activosDanados * 100) / totalActivos : 0, color: '#ef4444' },
     { label: 'Retirado', value: totalActivos > 0 ? (retirados * 100) / totalActivos : 0, color: '#6b7280' },
   ];
 
@@ -174,6 +222,7 @@ const Reportes = () => {
       blue: isDark ? 'bg-blue-900/30' : 'bg-blue-100',
       green: isDark ? 'bg-green-900/30' : 'bg-green-100',
       orange: isDark ? 'bg-orange-900/30' : 'bg-orange-100',
+      red: isDark ? 'bg-red-900/30' : 'bg-red-100',
       purple: isDark ? 'bg-purple-900/30' : 'bg-purple-100',
     };
     return colors[color];
@@ -184,6 +233,7 @@ const Reportes = () => {
       blue: 'text-blue-600',
       green: 'text-green-600',
       orange: 'text-orange-600',
+      red: 'text-red-600',
       purple: 'text-purple-600',
     };
     return colors[color];
@@ -204,7 +254,8 @@ const Reportes = () => {
     doc.text(`Total de Activos: ${totalActivos}`, 40, 90);
     doc.text(`Bienes Activos: ${bienesActivos}`, 220, 90);
     doc.text(`Mantenimiento: ${enMantenimiento}`, 400, 90);
-    doc.text(`Valor Total: ${moneyMx.format(valorTotal)}`, 560, 90);
+    doc.text(`Danados: ${activosDanados}`, 560, 90);
+    doc.text(`Valor Total: ${moneyMx.format(valorTotal)}`, 700, 90);
 
     autoTable(doc, {
       startY: 110,
@@ -218,22 +269,56 @@ const Reportes = () => {
 
     autoTable(doc, {
       startY: 110,
-      head: [['Activo', 'Categoria', 'Responsable', 'Estado', 'Ultima vista', 'Accion']],
-      body: recentActivities.map((item) => [
-        item.activo,
+      head: [['ID', 'Activo', 'Categoria', 'Aula', 'Responsable', 'Estado', 'Fecha registro']],
+      body: activosTablaFiltrados.slice(0, 22).map((item) => [
+        item.id_activo,
+        item.nombre,
         item.categoria,
-        item.responsable,
+        aulaTexto(item),
+        nombreResponsable(item),
         item.estado,
-        `${item.fecha} - ${item.ubicacion}`,
-        item.accion,
+        formatearFecha(item.fecha_registro),
       ]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [37, 99, 235] },
-      margin: { left: 320 },
-      tableWidth: 470,
+      margin: { left: 310 },
+      tableWidth: 480,
     });
 
     doc.save(`reporte_activos_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const exportarTablaActivosPdf = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const fechaActual = new Date().toLocaleDateString('es-MX');
+
+    doc.setFontSize(14);
+    doc.text('Activos Registrados (Tabla Filtrada)', 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Fecha de generacion: ${fechaActual}`, 40, 58);
+    doc.text(`Aula: ${filtroAula || 'Todas'}`, 40, 74);
+    doc.text(`Responsable: ${filtroResponsable || 'Todos'}`, 220, 74);
+    doc.text(`Estado: ${filtroEstado || 'Todos'}`, 480, 74);
+    doc.text(`Total registros: ${activosTablaFiltrados.length}`, 680, 74, { align: 'right' });
+
+    autoTable(doc, {
+      startY: 90,
+      head: [['ID', 'Activo', 'Categoria', 'Aula', 'Responsable', 'Estado', 'Fecha registro']],
+      body: activosTablaFiltrados.map((item) => [
+        item.id_activo,
+        item.nombre,
+        item.categoria,
+        aulaTexto(item),
+        nombreResponsable(item),
+        item.estado,
+        formatearFecha(item.fecha_registro),
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save(`activos_filtrados_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -271,7 +356,7 @@ const Reportes = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -310,9 +395,9 @@ const Reportes = () => {
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
               Adquisición de Activos
             </h3>
-            <button className={`p-1 rounded hover:${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+            {/* <button className={`p-1 rounded hover:${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
               <MoreVertical size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-            </button>
+            </button> */}
           </div>
 
           <div className="relative h-72">
@@ -387,23 +472,44 @@ const Reportes = () => {
           </div>
         </div>
 
-        {/* Donut Chart */}
         <div className={`rounded-lg border p-6 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
           }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
               Estatus de Activos
             </h3>
-            <button className={`p-1 rounded hover:${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+            {/* <button className={`p-1 rounded hover:${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
               <MoreVertical size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-            </button>
+            </button> */}
           </div>
 
           <div className="flex flex-col items-center gap-6">
             <svg className="w-40 h-40" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="50" fill="none" stroke={statusDistribution[0].color} strokeWidth="20" strokeDasharray={`${statusDistribution[0].value * 3.14 / 100 * 50 * 2} ${314}`} transform="rotate(-90 60 60)" />
-              <circle cx="60" cy="60" r="50" fill="none" stroke={statusDistribution[1].color} strokeWidth="20" strokeDasharray={`${statusDistribution[1].value * 3.14 / 100 * 50 * 2} ${314}`} strokeDashoffset={`${-statusDistribution[0].value * 3.14 / 100 * 50 * 2}`} transform="rotate(-90 60 60)" />
-              <circle cx="60" cy="60" r="50" fill="none" stroke={statusDistribution[2].color} strokeWidth="20" strokeDasharray={`${statusDistribution[2].value * 3.14 / 100 * 50 * 2} ${314}`} strokeDashoffset={`${-(statusDistribution[0].value + statusDistribution[1].value) * 3.14 / 100 * 50 * 2}`} transform="rotate(-90 60 60)" />
+              {(() => {
+                const radio = 50;
+                const circ = 2 * Math.PI * radio;
+                let offset = 0;
+
+                return statusDistribution.map((item, idx) => {
+                  const arc = (item.value / 100) * circ;
+                  const circle = (
+                    <circle
+                      key={`estatus-${idx}`}
+                      cx="60"
+                      cy="60"
+                      r={radio}
+                      fill="none"
+                      stroke={item.color}
+                      strokeWidth="20"
+                      strokeDasharray={`${arc} ${circ}`}
+                      strokeDashoffset={-offset}
+                      transform="rotate(-90 60 60)"
+                    />
+                  );
+                  offset += arc;
+                  return circle;
+                });
+              })()}
               <circle cx="60" cy="60" r="35" fill={isDark ? '#1e293b' : '#ffffff'} />
             </svg>
 
@@ -423,13 +529,65 @@ const Reportes = () => {
 
       <div className={`rounded-lg border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <div className="p-6 border-b" style={{ borderColor: isDark ? '#475569' : '#e2e8f0' }}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-              Actividad Reciente
+              Activos Registrados
             </h3>
-            <button onClick={() => navigate('/historial')} className={`text-sm font-medium text-blue-600 hover:text-blue-700`}>
-              Ver Todo
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={filtroAula}
+                onChange={(e) => setFiltroAula(e.target.value)}
+                className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${isDark
+                  ? 'bg-slate-700 border-slate-600 text-slate-100'
+                  : 'bg-white border-slate-200 text-slate-900'
+                  }`}
+              >
+                <option value="">Todas las aulas</option>
+                {opcionesAula.map((aula) => (
+                  <option key={aula} value={aula}>{aula}</option>
+                ))}
+              </select>
+
+              <select
+                value={filtroResponsable}
+                onChange={(e) => setFiltroResponsable(e.target.value)}
+                className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${isDark
+                  ? 'bg-slate-700 border-slate-600 text-slate-100'
+                  : 'bg-white border-slate-200 text-slate-900'
+                  }`}
+              >
+                <option value="">Todos los responsables</option>
+                {opcionesResponsable.map((responsable) => (
+                  <option key={responsable} value={responsable}>{responsable}</option>
+                ))}
+              </select>
+
+              <select
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${isDark
+                  ? 'bg-slate-700 border-slate-600 text-slate-100'
+                  : 'bg-white border-slate-200 text-slate-900'
+                  }`}
+              >
+                <option value="">Todos los estados</option>
+                {opcionesEstado.map((estado) => (
+                  <option key={estado} value={estado}>{estado}</option>
+                ))}
+              </select>
+
+              <button
+                onClick={exportarTablaActivosPdf}
+                className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition ${isDark
+                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+              >
+                <Download size={15} />
+                Exportar tabla PDF
+              </button>
+            </div>
           </div>
         </div>
 
@@ -438,10 +596,16 @@ const Reportes = () => {
             <thead className={`border-b ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
               <tr>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  ID
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   ACTIVO
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   CATEGORIA
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  AULA
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   RESPONSABLE
@@ -450,55 +614,49 @@ const Reportes = () => {
                   ESTADO
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  ÚLTIMA VISTA
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  ACCION
+                  FECHA REGISTRO
                 </th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
-              {recentActivities.map((activity, index) => (
+              {activosTablaFiltrados.map((activo, index) => (
                 <tr key={index} className={`transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`}>
+                  <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
+                    {activo.id_activo}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <FileText className={isDark ? 'text-slate-500' : 'text-slate-400'} size={18} />
                       <div>
                         <p className={`font-medium text-sm ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                          {activity.activo}
-                        </p>
-                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                          ID: {activity.id}
+                          {activo.nombre}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.categoria}
+                    {activo.categoria}
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.responsable}
+                    {aulaTexto(activo)}
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {nombreResponsable(activo)}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-semibold ${estadoColorClass(activity.estadoColor)}`}>
-                      {activity.estado}
+                    <span className={`text-xs font-semibold ${estadoColorClass(activo.color)}`}>
+                      {activo.estado}
                     </span>
                   </td>
                   <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.fecha} <br />
-                    <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      En {activity.ubicacion}
-                    </span>
-                  </td>
-                  <td className={`px-6 py-4 text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {activity.accion}
+                    {formatearFecha(activo.fecha_registro)}
                   </td>
                 </tr>
               ))}
-              {recentActivities.length === 0 && (
+              {activosTablaFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={6} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    No hay actividad registrada para el rango seleccionado.
+                  <td colSpan={7} className={`px-6 py-6 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    No hay activos que coincidan con los filtros seleccionados.
                   </td>
                 </tr>
               )}

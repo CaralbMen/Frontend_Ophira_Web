@@ -8,6 +8,7 @@ import Activos from './pages/Activos';
 import Scanner from './pages/Scanner';
 import Reportes from './pages/Reportes';
 import Historial from './pages/Historial';
+import DetalleMovimiento from './pages/DetalleMovimiento';
 import Auditorias from './pages/Auditorias';
 import DetallesAuditoria from './pages/DetallesAuditoria';
 import VerActivo from './pages/crudActivos/verActivo';
@@ -45,6 +46,7 @@ function App() {
                   <Route path="/scanner" element={<Scanner />} />
                   <Route path="/reportes" element={<Reportes />} />
                   <Route path="/historial" element={<Historial />} />
+                  <Route path="/historial/:id/detalle" element={<DetalleMovimiento />} />
                   <Route path="/auditorias" element={<Auditorias />} />
                   <Route path="/auditorias/:id" element={<DetallesAuditoria />} />
                   <Route path="/usuarios" element={<Usuarios />} />

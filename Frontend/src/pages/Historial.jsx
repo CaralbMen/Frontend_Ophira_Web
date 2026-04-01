@@ -1,9 +1,10 @@
-import { Search, Download, RefreshCw, Calendar } from 'lucide-react';
+import { Search, Download, RefreshCw, Calendar, Eye } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useNavigate } from 'react-router-dom';
 
 const normalizarFechaClave = (valor) => {
   if (!valor) return '';
@@ -31,6 +32,7 @@ const capitalizarPrimera = (valor) => {
 
 const Historial = () => {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState('Todas las Acciones');
   const [filterDate, setFilterDate] = useState('');
@@ -38,6 +40,7 @@ const Historial = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const dateInputRef = useRef(null);
+  const tiposConDetalle = useMemo(() => new Set(['depreciacion', 'actualizacion', 'ubicacion', 'baja']), []);
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -51,6 +54,7 @@ const Historial = () => {
         const normalizados = rows.map((mov) => {
           const fecha = mov.fecha_movimiento ? new Date(mov.fecha_movimiento) : null;
           const tipo = String(mov.tipo_movimiento || '').toLowerCase();
+          const esDepreciacion = tipo === 'depreciacion';
           const nombreResponsable = [mov.nombre_usuario, mov.apellido_paterno]
             .filter(Boolean)
             .join(' ')
@@ -76,7 +80,7 @@ const Historial = () => {
             hora: fecha && !Number.isNaN(fecha.getTime())
               ? fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
               : '-',
-            usuario: nombreResponsable || `Usuario ${mov.id_usuario}`,
+            usuario: esDepreciacion ? 'Sistema' : (nombreResponsable || `Usuario ${mov.id_usuario}`),
             puesto: puestoResponsable || null,
             area: areaResponsable || null,
             responsableActivo: nombreResponsableActivo || 'Sin asignar',
@@ -87,6 +91,8 @@ const Historial = () => {
             nombreActivo: mov.nombre_activo || 'Activo sin nombre',
             categoriaActivo: mov.categoria_activo || 'Sin categoría',
             accion: capitalizarPrimera(mov.tipo_movimiento) || 'Sin tipo',
+            tipoRaw: tipo,
+            tieneDetalle: tiposConDetalle.has(tipo),
             accionColor:
               tipo === 'depreciacion' ? 'yellow' :
                 tipo === 'baja' ? 'red' :
@@ -106,7 +112,12 @@ const Historial = () => {
     };
 
     cargarHistorial();
-  }, []);
+  }, [tiposConDetalle]);
+
+  const verDetalle = (movimiento) => {
+    if (!movimiento?.tieneDetalle) return;
+    navigate(`/historial/${movimiento.id}/detalle`);
+  };
 
   const historialFiltrado = useMemo(() => {
     const termino = searchTerm.trim().toLowerCase();
@@ -145,13 +156,13 @@ const Historial = () => {
   const getAccionBadgeColor = (color) => {
     switch (color) {
       case 'green':
-        return 'text-green-600 font-semibold';
+        return 'text-ophira-success font-semibold';
       case 'yellow':
-        return 'text-yellow-600 font-semibold';
+        return 'text-ophira-warning font-semibold';
       case 'red':
-        return 'text-red-600 font-semibold';
+        return 'text-ophira-danger font-semibold';
       case 'blue':
-        return 'text-blue-600 font-semibold';
+        return 'text-ophira-primary font-semibold';
       default:
         return 'text-slate-600 font-semibold';
     }
@@ -272,9 +283,9 @@ const Historial = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2.5 rounded-lg border transition text-sm ${isDark
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500'
-                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-blue-500'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                  ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-200 placeholder-slate-500 focus:border-ophira-primary'
+                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-ophira-primary'
+                } focus:outline-none focus:ring-2 focus:ring-ophira-primary/20`}
             />
           </div>
 
@@ -283,9 +294,9 @@ const Historial = () => {
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
               className={`w-full px-4 py-2.5 rounded-lg border transition text-sm appearance-none cursor-pointer ${isDark
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 focus:border-blue-500'
-                  : 'bg-white border-slate-300 text-slate-800 focus:border-blue-500'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                  ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-200 focus:border-ophira-primary'
+                  : 'bg-white border-slate-300 text-slate-800 focus:border-ophira-primary'
+                } focus:outline-none focus:ring-2 focus:ring-ophira-primary/20`}
             >
               {accionesDisponibles.map((accion) => (
                 <option key={accion} value={accion}>{accion}</option>
@@ -311,15 +322,15 @@ const Historial = () => {
               onFocus={(e) => e.currentTarget.showPicker?.()}
               aria-label="Seleccionar fecha"
               className={`w-full pl-12 pr-4 py-2.5 rounded-lg border transition text-sm ${isDark
-                  ? 'bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500'
-                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-blue-500'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer`}
+                  ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-200 placeholder-slate-500 focus:border-ophira-primary'
+                  : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-ophira-primary'
+                } focus:outline-none focus:ring-2 focus:ring-ophira-primary/20 cursor-pointer`}
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end">
-          <button onClick={limpiarFiltros} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <button onClick={limpiarFiltros} className="text-sm text-ophira-primary hover:text-ophira-primary/80 font-medium">
             Limpiar Filtros
           </button>
         </div>
@@ -327,13 +338,13 @@ const Historial = () => {
 
       {/* Yo había ponido mi historial aki */}
       <div className={`rounded-lg border overflow-hidden transition ${isDark
-          ? 'bg-slate-800 border-slate-700'
+          ? 'bg-ophira-bg-card border-ophira-bg-hover'
           : 'bg-white border-slate-200'
         }`}>
         <div className="max-h-[28rem] overflow-auto">
           <table className="w-full">
             <thead className={`border-b transition ${isDark
-                ? 'bg-slate-700 border-slate-600'
+                ? 'bg-ophira-bg-hover border-ophira-bg-hover'
                 : 'bg-slate-50 border-slate-200'
               }`}>
               <tr>
@@ -358,12 +369,15 @@ const Historial = () => {
                 <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   DESCRIPCIÓN
                 </th>
+                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  VER
+                </th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-slate-200'}`}>
               {loading && (
                 <tr>
-                  <td colSpan={7} className={`px-4 py-8 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <td colSpan={8} className={`px-4 py-8 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Cargando historial...
                   </td>
                 </tr>
@@ -371,7 +385,7 @@ const Historial = () => {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-sm text-red-600">
+                  <td colSpan={8} className="px-4 py-8 text-sm text-red-600">
                     {error}
                   </td>
                 </tr>
@@ -379,7 +393,7 @@ const Historial = () => {
 
               {!loading && !error && historialFiltrado.length === 0 && (
                 <tr>
-                  <td colSpan={7} className={`px-4 py-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <td colSpan={8} className={`px-4 py-8 text-center text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                     No hay movimientos para mostrar con los filtros actuales.
                   </td>
                 </tr>
@@ -416,7 +430,7 @@ const Historial = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nombre:</span>
+                      {/* <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nombre:</span> */}
                       <span className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                         {item.nombreActivo}
                       </span>
@@ -434,6 +448,22 @@ const Historial = () => {
                     <div className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{item.cambios}</div>
                     {item.subcambios && (
                       <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.subcambios}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {item.tieneDetalle ? (
+                      <button
+                        onClick={() => verDetalle(item)}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${isDark
+                          ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                      >
+                        <Eye size={14} />
+                        Ver
+                      </button>
+                    ) : (
+                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>-</span>
                     )}
                   </td>
                 </tr>

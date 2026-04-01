@@ -1,10 +1,11 @@
-import { Search, Plus, Download, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Download, Edit, Trash2, QrCode } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {api} from '../services/api';
 import { useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import QRCode from 'qrcode';
 
 const formatearFecha = (fecha) => {
   if (!fecha) return '';
@@ -250,6 +251,79 @@ const Activos = () => {
     doc.save(`activos_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
+  const obtenerActivosDelDia = () => {
+    const hoy = new Date();
+    const inicioDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const finDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+
+    return activos.filter((activo) => {
+      const fechaRegistro = new Date(activo.fecha_registro || activo.fecha_compra);
+      if (Number.isNaN(fechaRegistro.getTime())) return false;
+      return fechaRegistro >= inicioDelDia && fechaRegistro < finDelDia;
+    });
+  };
+
+  const exportarQrActivosDelDia = async () => {
+    const activosDia = obtenerActivosDelDia();
+
+    if (activosDia.length === 0) {
+      window.alert('No hay activos registrados en el día de hoy.');
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const fechaHoy = new Date().toLocaleDateString('es-MX');
+
+      pdf.setFontSize(16);
+      pdf.text('QR Activos del Día', 20, 20);
+      pdf.setFontSize(10);
+      pdf.text(`Fecha: ${fechaHoy}`, 20, 30);
+      pdf.text(`Total de activos registrads hoy: ${activosDia.length}`, 20, 37);
+
+      let yPosition = 50;
+      const pageHeight = pdf.internal.pageSize.height;
+      const maxYPosition = pageHeight - 20;
+
+      for (let i = 0; i < activosDia.length; i += 1) {
+        const activo = activosDia[i];
+
+        if (yPosition > maxYPosition - 40) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        const idActivo = String(activo.id_activo || activo.id || '');
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, idActivo, {
+          width: 80,
+          margin: 1,
+        });
+
+        const qrDataUrl = canvas.toDataURL('image/png');
+
+        pdf.setFontSize(11);
+        pdf.text(`ID: ${idActivo || 'N/A'}`, 20, yPosition);
+        pdf.setFontSize(9);
+        pdf.text(`Nombre: ${activo.nombre || 'N/A'}`, 20, yPosition + 8);
+        pdf.text(`Aula: ${activo.aula || activo.id_aula || 'N/A'}`, 20, yPosition + 16);
+        pdf.addImage(qrDataUrl, 'PNG', 120, yPosition - 5, 25, 25);
+
+        // Separador visual entre registros
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.3);
+        pdf.line(20, yPosition + 27, 190, yPosition + 27);
+
+        yPosition += 35;
+      }
+
+      pdf.save(`qr_activos_dia_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error('Error al generar PDF de QR del día:', error);
+      window.alert('Error al generar el PDF. Intenta nuevamente.');
+    }
+  };
+
   return (
     <div className="space-y-4">
       
@@ -265,7 +339,15 @@ const Activos = () => {
               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
           }`} onClick={exportarPdfActivos}>
             <Download size={16} />
-            Exportar
+            Generar PDF
+          </button>
+          <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition ${
+            isDark 
+              ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700' 
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+          }`} onClick={exportarQrActivosDelDia}>
+            <QrCode size={16} />
+            QR Activos Registrados Hoy
           </button>
           <button className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
             <Plus size={16} />

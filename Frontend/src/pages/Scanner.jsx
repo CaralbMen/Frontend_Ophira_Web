@@ -2,7 +2,7 @@ import { Camera, CameraOff, Flashlight, Search, Package, Clock } from 'lucide-re
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
-import  {api} from '../services/api';
+import { api } from '../services/api';
 import { getToken } from '../services/authStorage';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,7 +13,7 @@ const capitalizarPrimera = (valor) => {
 };
 
 const Scanner = () => {
-  
+
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const [cameraActive, setCameraActive] = useState(true);
@@ -23,6 +23,8 @@ const Scanner = () => {
   const [codigoManual, setCodigoManual] = useState('');
   const [assetData, setAssetData] = useState({});
   const [movimientos, setMovimientos] = useState([]);
+  const [movimientosActivo, setMovimientosActivo] = useState([]);
+  const [cargandoMovimientos, setCargandoMovimientos] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
@@ -43,6 +45,25 @@ const Scanner = () => {
       return Number.isFinite(id) ? id : null;
     } catch {
       return null;
+    }
+  };
+
+  const cargarMovimientosActivo = async (idActivo) => {
+    if (!idActivo) return;
+    setCargandoMovimientos(true);
+    try {
+      const response = await api.get(`movimientos/activo/${idActivo}`);
+      const data = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+      setMovimientosActivo(data);
+    } catch (error) {
+      console.error('Error al cargar movimientos del activo:', error);
+      setMovimientosActivo([]);
+    } finally {
+      setCargandoMovimientos(false);
     }
   };
 
@@ -98,42 +119,45 @@ const Scanner = () => {
     }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
 
-      if(codigoDetectado){
-        
-        const fetchAsset= async()=>{
-          try {
-            const idBuscado = String(codigoDetectado).trim();
-            if (!idBuscado) {
-              setAssetData({});
-              return;
-            }
+    if (codigoDetectado) {
 
-            console.log('Buscando activo con ID:', idBuscado);
-            const response = await api.get(`assets/activo/${idBuscado}`);
-            console.log('Activo encontrado:', response);
-            
-            if (Array.isArray(response) && response.length > 0) {
-              setAssetData(response[0]);
-              await registrarEscaneoMovimiento(response[0]);
-            } else if (response && typeof response === 'object') {
-              setAssetData(response);
-              await registrarEscaneoMovimiento(response);
-            } else {
-              setAssetData({});
-            }
-            //console.log('Datos del activo:', assetData);
-            
-          } catch (error) {
-            console.error('No se pudo obtener el activo:', error);
+      const fetchAsset = async () => {
+        try {
+          const idBuscado = String(codigoDetectado).trim();
+          if (!idBuscado) {
             setAssetData({});
+            return;
           }
-        };
-        fetchAsset();
-      }
+
+          console.log('Buscando activo con ID:', idBuscado);
+          const response = await api.get(`assets/activo/${idBuscado}`);
+          console.log('Activo encontrado:', response);
+
+          if (Array.isArray(response) && response.length > 0) {
+            setAssetData(response[0]);
+            await registrarEscaneoMovimiento(response[0]);
+            await cargarMovimientosActivo(response[0]?.id_activo);
+          } else if (response && typeof response === 'object') {
+            setAssetData(response);
+            await registrarEscaneoMovimiento(response);
+            await cargarMovimientosActivo(response?.id_activo);
+          } else {
+            setAssetData({});
+            setMovimientosActivo([]);
+          }
+          //console.log('Datos del activo:', assetData);
+
+        } catch (error) {
+          console.error('No se pudo obtener el activo:', error);
+          setAssetData({});
+        }
+      };
+      fetchAsset();
+    }
   }, [codigoDetectado]);
-  
+
 
   const detenerEscaneo = () => {
     if (rafRef.current) {
@@ -255,7 +279,7 @@ const Scanner = () => {
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-        
+
         if (cancelled || !cameraActive) {
           stream.getTracks().forEach(track => {
             track.enabled = false;
@@ -322,9 +346,8 @@ const Scanner = () => {
           </div>
         </div>
 
-        <div className={`rounded-lg border overflow-hidden ${
-          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
+        <div className={`rounded-lg border overflow-hidden ${isDark ? 'bg-ophira-bg-card border-ophira-bg-hover' : 'bg-white border-slate-200'
+          }`}>
           <div className="relative bg-black aspect-video flex items-center justify-center">
             {!cameraActive ? (
               <div className="w-full h-full bg-black"></div>
@@ -345,20 +368,20 @@ const Scanner = () => {
 
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative w-64 h-64">
-                    <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl"></div>
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-400 rounded-tl-2xl"></div>
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-400 rounded-tr-2xl"></div>
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-400 rounded-bl-2xl"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-400 rounded-br-2xl"></div>
+                    <div className="absolute inset-0 border-4 border-ophira-primary rounded-2xl"></div>
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-ophira-primary rounded-tl-2xl"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-ophira-primary rounded-tr-2xl"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-ophira-primary rounded-bl-2xl"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-ophira-primary rounded-br-2xl"></div>
                   </div>
                 </div>
               </>
             )}
 
             <div className="absolute top-4 right-4 flex flex-col gap-2">
-              <button 
+              <button
                 onClick={() => setCameraActive(!cameraActive)}
-                className="w-10 h-10 bg-slate-800/80 hover:bg-slate-700 rounded-lg flex items-center justify-center transition backdrop-blur-sm"
+                className="w-10 h-10 bg-ophira-bg-card/80 hover:bg-ophira-bg-hover rounded-lg flex items-center justify-center transition backdrop-blur-sm"
                 title={cameraActive ? 'Desactivar cámara' : 'Activar cámara'}
               >
                 {cameraActive ? (
@@ -370,7 +393,7 @@ const Scanner = () => {
             </div>
 
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
+              <div className="bg-ophira-bg-card/80 backdrop-blur-sm px-4 py-2 rounded-lg">
                 <p className="text-white text-sm flex items-center gap-2">
                   <Package size={16} />
                   {codigoDetectado ? `Codigo detectado: ${codigoDetectado}` : 'Alinea el código QR dentro del marco'}
@@ -379,7 +402,7 @@ const Scanner = () => {
             </div>
           </div>
 
-          <div className={`p-4 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+          <div className={`p-4 border-t ${isDark ? 'border-ophira-bg-hover' : 'border-slate-200'}`}>
             <p className={`text-xs mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               ¿La cámara no funciona? Inserta el ID del activo de manera manual
             </p>
@@ -387,30 +410,117 @@ const Scanner = () => {
               <input
                 type="text"
                 placeholder="ID del activo"
-                className={`flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
-                  isDark
-                    ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500'
+                className={`flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary transition ${isDark
+                    ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-500'
                     : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
-                }`}
+                  }`}
                 onChange={(e) => setCodigoManual(e.target.value)}
               />
               <button
-                onClick={() => setCodigoDetectado(codigoManual)} 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
+                onClick={() => setCodigoDetectado(codigoManual)}
+                className="px-4 py-2 bg-ophira-primary text-white rounded-lg text-sm font-medium hover:bg-ophira-primary/90 transition flex items-center gap-2">
                 <Search size={16} />
                 Buscar
               </button>
             </div>
           </div>
         </div>
+
+        {/* Tabla de movimientos del activo escaneado */}
+        {(movimientosActivo.length > 0 || cargandoMovimientos) && (
+          <div className={`rounded-lg border overflow-hidden ${isDark ? 'bg-ophira-bg-card border-ophira-bg-hover' : 'bg-white border-slate-200'
+            }`}>
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-ophira-bg-hover' : 'border-slate-200'
+              }`}>
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-ophira-primary" />
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'
+                  }`}>
+                  Movimientos de: <span className="text-ophira-primary">{assetData?.nombre || `Activo ${assetData?.id_activo}`}</span>
+                </h3>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'
+                }`}>
+                {movimientosActivo.length} registro{movimientosActivo.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {cargandoMovimientos ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-ophira-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={isDark ? 'bg-ophira-bg-hover/50' : 'bg-slate-50'}>
+                      <th className={`px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}>Tipo</th>
+                      <th className={`px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}>Responsable</th>
+                      <th className={`px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}>Fecha</th>
+                      <th className={`px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}>Descripción</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${isDark ? 'divide-ophira-bg-hover' : 'divide-slate-100'
+                    }`}>
+                    {movimientosActivo.map((mov, index) => {
+                      const tipoLower = String(mov.tipo_movimiento || '').toLowerCase();
+                      const responsableMovimiento = tipoLower === 'depreciacion'
+                        ? 'Sistema'
+                        : (mov.nombre_usuario || `Usuario ${mov.id_usuario}`);
+                      const tipoColor =
+                        tipoLower === 'escaneo' ? 'text-ophira-primary bg-ophira-primary/10' :
+                          tipoLower === 'alta' ? 'text-ophira-success bg-ophira-success/10' :
+                            tipoLower === 'baja' ? 'text-ophira-danger bg-ophira-danger/10' :
+                              tipoLower === 'traslado' ? 'text-ophira-purple bg-ophira-purple/10' :
+                                'text-slate-500 bg-slate-500/10';
+                      return (
+                        <tr
+                          key={index}
+                          className={`transition ${isDark ? 'hover:bg-ophira-bg-hover/40' : 'hover:bg-slate-50'
+                            }`}
+                        >
+                          <td className="px-4 py-3">
+                            <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${tipoColor}`}>
+                              {capitalizarPrimera(mov.tipo_movimiento)}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'
+                            }`}>
+                            {responsableMovimiento}
+                          </td>
+                          <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'
+                            }`}>
+                            {mov.fecha_movimiento
+                              ? new Date(mov.fecha_movimiento).toLocaleString('es-MX', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                              })
+                              : 'N/A'}
+                          </td>
+                          <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'
+                            }`}>
+                            {mov.descripcion || '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className={`text-xs font-semibold uppercase tracking-wider ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}>
+            <h3 className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
               AHORA
             </h3>
             <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -418,11 +528,10 @@ const Scanner = () => {
             </span>
           </div>
 
-          <div className={`rounded-lg border p-4 ${
-            isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-          }`}>
+          <div className={`rounded-lg border p-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+            }`}>
             <h4 className={`font-bold text-lg mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-              {assetData? assetData.nombre : 'Sin activo seleccionado'}
+              {assetData ? assetData.nombre : 'Sin activo seleccionado'}
             </h4>
 
             <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -461,7 +570,7 @@ const Scanner = () => {
               </div>
             </div>
 
-            <button onClick={()=> navigate(`/activos/editar/${assetData?.id_activo}`)} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mb-2">
+            <button onClick={() => navigate(`/activos/editar/${assetData?.id_activo}`)} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition mb-2">
               Ver Detalles
             </button>
 
@@ -475,9 +584,8 @@ const Scanner = () => {
         </div>
 
         <div>
-          <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
-            isDark ? 'text-slate-400' : 'text-slate-500'
-          }`}>
+          <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}>
             ESCANEOS RECIENTES
           </h3>
 
@@ -486,11 +594,10 @@ const Scanner = () => {
               movimientos.map((mov, index) => (
                 <div
                   key={index}
-                  className={`rounded-lg border p-3 cursor-pointer transition ${
-                    isDark 
-                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' 
+                  className={`rounded-lg border p-3 cursor-pointer transition ${isDark
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700'
                       : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex items-center gap-2">
@@ -499,9 +606,8 @@ const Scanner = () => {
                         {mov.nombre}
                       </h5>
                     </div>
-                    <span className={`text-xs ${
-                      String(mov.estado).toLowerCase() === 'escaneo' ? 'text-blue-600' : 'text-yellow-600'
-                    }`}>
+                    <span className={`text-xs ${String(mov.estado).toLowerCase() === 'escaneo' ? 'text-blue-600' : 'text-yellow-600'
+                      }`}>
                       {mov.estado}
                     </span>
                   </div>
@@ -516,21 +622,19 @@ const Scanner = () => {
                 </div>
               ))
             ) : (
-              <div className={`rounded-lg border p-3 text-center ${
-                isDark 
-                  ? 'bg-slate-800 border-slate-700' 
+              <div className={`rounded-lg border p-3 text-center ${isDark
+                  ? 'bg-slate-800 border-slate-700'
                   : 'bg-white border-slate-200'
-              }`}>
+                }`}>
                 <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   No hay escaneos registrados
                 </p>
               </div>
             )}
-            <button className={`w-full py-2 rounded-lg text-xs font-medium transition ${
-              isDark
+            <button className={`w-full py-2 rounded-lg text-xs font-medium transition ${isDark
                 ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-            }`}>
+              }`}>
               Ver Historial
             </button>
           </div>

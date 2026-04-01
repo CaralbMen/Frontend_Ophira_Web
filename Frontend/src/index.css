@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-body{
+body {
+  @apply bg-ophira-bg-dark text-white transition-colors duration-200;
+}
+
+/* Dark mode styles */
+.dark {
+  @apply bg-ophira-bg-dark text-white;
+  color-scheme: dark;
+}
+
+/* Light mode styles */
+body:not(.dark) {
   @apply bg-slate-50 text-slate-900;
+  color-scheme: light;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-ophira-bg-card;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-ophira-bg-hover rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Focus ring colors */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  @apply outline-none ring-2 ring-ophira-primary;
 }

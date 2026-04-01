@@ -20,12 +20,44 @@ const getUserIdFromToken = () => {
   }
 };
 
+const contarActivosVerificados = (estadosFuente) => {
+  if (!estadosFuente) return 0;
+
+  let estados = estadosFuente;
+  if (typeof estados === 'string') {
+    try {
+      estados = JSON.parse(estados);
+    } catch {
+      return 0;
+    }
+  }
+
+  if (Array.isArray(estados)) {
+    return estados.reduce((acc, item) => {
+      if (!item || typeof item !== 'object') return acc + 1;
+
+      if ('estado' in item || 'id_activo' in item || 'id' in item) {
+        return acc + 1;
+      }
+
+      return acc + Object.keys(item).length;
+    }, 0);
+  }
+
+  if (estados && typeof estados === 'object') {
+    return Object.keys(estados).length;
+  }
+
+  return 0;
+};
+
 const Perfil = () => {
   const { isDark } = useTheme();
   const navigate = useNavigate();
   const { id } = useParams();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [auditorias, setAuditorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,17 +67,20 @@ const Perfil = () => {
       setError('');
 
       try {
-        const [usuariosResponse, rolesResponse] = await Promise.all([
+        const [usuariosResponse, rolesResponse, auditoriasResponse] = await Promise.all([
           api.get('usuarios'),
-          api.get('roles')
+          api.get('roles'),
+          api.get('auditorias')
         ]);
 
         setUsuarios(Array.isArray(usuariosResponse) ? usuariosResponse : []);
         setRoles(Array.isArray(rolesResponse) ? rolesResponse : []);
+        setAuditorias(Array.isArray(auditoriasResponse?.rows) ? auditoriasResponse.rows : []);
       } catch (e) {
         setError('No se pudo cargar la información del perfil.');
         setUsuarios([]);
         setRoles([]);
+        setAuditorias([]);
       } finally {
         setLoading(false);
       }
@@ -89,6 +124,27 @@ const Perfil = () => {
     };
   }, [usuarios, roles, id]);
 
+  const actividadStats = useMemo(() => {
+    if (!usuario) {
+      return { auditoriasCompletadas: 0, activosRevisados: 0 };
+    }
+
+    const auditoriasUsuario = auditorias.filter((auditoria) => String(auditoria.id_usuario_auditor) === String(usuario.id));
+    const auditoriasCompletadas = auditoriasUsuario.filter((auditoria) => {
+      const estado = String(auditoria.estado_general || '').toLowerCase().trim();
+      return !estado || estado === 'finalizada' || estado === 'completada';
+    });
+
+    const activosRevisados = auditoriasCompletadas.reduce((acc, auditoria) => {
+      return acc + contarActivosVerificados(auditoria.estados_activos);
+    }, 0);
+
+    return {
+      auditoriasCompletadas: auditoriasCompletadas.length,
+      activosRevisados,
+    };
+  }, [auditorias, usuario]);
+
   const formatearFecha = (fecha) => {
     if (!fecha) return '-';
     const date = new Date(fecha);
@@ -96,19 +152,10 @@ const Perfil = () => {
     return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  const getEstadoBadge = (estado) => {
-    if (estado === 'Activo') {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-          Activo
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-        Inactivo
-      </span>
-    );
+  const getEstadoTextClass = (estado) => {
+    if (estado === 'Activo') return 'text-green-600';
+    if (estado === 'Inactivo') return 'text-red-600';
+    return isDark ? 'text-slate-300' : 'text-slate-700';
   };
 
   return (
@@ -190,7 +237,6 @@ const Perfil = () => {
                 <h2 className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
                   {usuario.nombre_completo}
                 </h2>
-                {getEstadoBadge(usuario.estado)}
               </div>
               <div className="flex flex-wrap gap-4 text-sm">
                 <span className={`flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -200,6 +246,9 @@ const Perfil = () => {
                 <span className={`flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   <Briefcase size={16} />
                   {usuario.puesto}
+                </span>
+                <span className={`flex items-center gap-2 font-semibold ${getEstadoTextClass(usuario.estado)}`}>
+                  {usuario.estado}
                 </span>
               </div>
             </div>
@@ -307,7 +356,7 @@ const Perfil = () => {
                 Auditorías completadas
               </p>
               <p className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                {usuarios.filter((u) => u.id_usuario === Number(usuario.id)).length > 0 ? 1 : 0}
+                {actividadStats.auditoriasCompletadas}
               </p>
             </div>
             <div className={`p-3 rounded-lg ${isDark ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
@@ -315,7 +364,7 @@ const Perfil = () => {
                 Activos revisados
               </p>
               <p className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                {usuarios.length}
+                {actividadStats.activosRevisados}
               </p>
             </div>
           </div>

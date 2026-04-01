@@ -1,26 +1,24 @@
-import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical, Download } from 'lucide-react';
+import { Plus, ArrowUp, Wrench, TrendingUp, DollarSign, FileText, MapPin, Building2, Layers, DoorOpen, ChevronDown, X, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
 
 // Usamos la api para consumir el back
 import {api} from '../services/api';
 
 const colorEstadoTexto = {
-  green: 'text-green-600',
-  yellow: 'text-yellow-600',
-  red: 'text-red-600',
-  blue: 'text-blue-600'
+  green: 'text-ophira-success',
+  yellow: 'text-ophira-warning',
+  red: 'text-ophira-danger',
+  blue: 'text-ophira-primary'
 };
 
 const colorCategoria = [
-  { bg: 'bg-blue-600', stroke: '#2563eb' },
+  { bg: 'bg-ophira-primary', stroke: '#00BFFF' },
   { bg: 'bg-slate-400', stroke: '#94a3b8' },
-  { bg: 'bg-emerald-500', stroke: '#10b981' },
-  { bg: 'bg-amber-500', stroke: '#f59e0b' },
-  { bg: 'bg-rose-500', stroke: '#f43f5e' }
+  { bg: 'bg-ophira-success', stroke: '#10b981' },
+  { bg: 'bg-ophira-warning', stroke: '#f59e0b' },
+  { bg: 'bg-ophira-danger', stroke: '#f43f5e' }
 ];
 
 const formatoMoneda = new Intl.NumberFormat('es-MX', {
@@ -32,6 +30,19 @@ const formatoMoneda = new Intl.NumberFormat('es-MX', {
 const toNumber = (value) => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizarEstado = (estado) => String(estado || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim();
+
+const esEstadoMantenimiento = (estado) => normalizarEstado(estado).includes('mantenimiento');
+
+const esEstadoDanado = (estado) => {
+  const valor = normalizarEstado(estado);
+  return valor.includes('danad') || valor.includes('deteriorad') || valor.includes('averiad');
 };
 
 const Dashboard = () => {
@@ -57,6 +68,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     total_activos: '0',
     activos_en_mantenimiento: '0',
+    activos_danados: '0',
     aniadidos_recientemente: '0',
     valor_total: '0'
   });
@@ -108,7 +120,8 @@ const Dashboard = () => {
   }, []);
 
   const totalActivos = toNumber(dashboardData.total_activos);
-  const mantenimiento = toNumber(dashboardData.activos_en_mantenimiento);
+  const mantenimiento = activos.filter((a) => esEstadoMantenimiento(a.estado)).length || toNumber(dashboardData.activos_en_mantenimiento);
+  const danados = activos.filter((a) => esEstadoDanado(a.estado)).length || toNumber(dashboardData.activos_danados);
   const recientes = toNumber(dashboardData.aniadidos_recientemente);
   const valorTotal = toNumber(dashboardData.valor_total);
 
@@ -128,6 +141,14 @@ const Dashboard = () => {
       icon: Wrench,
       color: 'orange',
       trend: 'warning'
+    },
+    {
+      label: 'ACTIVOS DANADOS',
+      value: danados.toLocaleString('es-MX'),
+      change: 'Requieren atencion',
+      icon: TrendingUp,
+      color: 'red',
+      trend: 'danger'
     },
     {
       label: 'AÑADIDOS RECIENTEMENTE',
@@ -319,99 +340,16 @@ const Dashboard = () => {
     }
   };
 
-  const obtenerActivosDelDia = () => {
-    const hoy = new Date();
-    const inicioDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const finDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
-
-    return activos.filter(activo => {
-      const fechaRegistro = new Date(activo.fecha_registro || activo.fecha_compra);
-      return fechaRegistro >= inicioDelDia && fechaRegistro < finDelDia;
-    });
-  };
-
-  const exportarActivosDiaAPDF = async () => {
-    const activosDia = obtenerActivosDelDia();
-    
-    if (activosDia.length === 0) {
-      window.alert('No hay activos registrados en el día de hoy.');
-      return;
-    }
-
-    try {
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const fechaHoy = new Date().toLocaleDateString('es-MX');
-      
-      pdf.setFontSize(16);
-      pdf.text('Activos del Día', 20, 20);
-      pdf.setFontSize(10);
-      pdf.text(`Fecha: ${fechaHoy}`, 20, 30);
-      pdf.text(`Total de activos: ${activosDia.length}`, 20, 37);
-
-      let yPosition = 50;
-      const pageHeight = pdf.internal.pageSize.height;
-      const maxYPosition = pageHeight - 20;
-
-      for (let i = 0; i < activosDia.length; i++) {
-        const activo = activosDia[i];
-
-        if (yPosition > maxYPosition - 40) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-
-        // Generar QR como canvas
-        const canvas = document.createElement('canvas');
-        await QRCode.toCanvas(canvas, String(activo.id_activo || activo.id), {
-          width: 80,
-          margin: 1,
-        });
-
-        const qrDataUrl = canvas.toDataURL('image/png');
-
-        // Información del activo
-        pdf.setFontSize(11);
-        pdf.text(`ID: ${activo.id_activo || activo.id}`, 20, yPosition);
-        pdf.setFontSize(9);
-        pdf.text(`Nombre: ${activo.nombre || 'N/A'}`, 20, yPosition + 8);
-        pdf.text(`Aula: ${activo.aula || activo.id_aula || 'N/A'}`, 20, yPosition + 16);
-
-        // Agregar QR
-        pdf.addImage(qrDataUrl, 'PNG', 120, yPosition - 5, 25, 25);
-
-        yPosition += 35;
-      }
-
-      pdf.save(`activos_dia_${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      window.alert('Error al generar el PDF. Intenta nuevamente.');
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Dashboard</h1>
         <div className="flex items-center gap-3">
-          <button
-            onClick={exportarActivosDiaAPDF}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border transition ${
-              isDark
-                ? 'bg-blue-900/20 text-blue-300 border-blue-700 hover:bg-blue-900/40'
-                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-            }`}
-            type="button"
-            title="Exportar activos registrados hoy a PDF con sus códigos QR"
-          >
-            <Download size={18} />
-            Activos del Día
-          </button>
           <div className="relative">
             <button
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border transition ${
                 isDark
-                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+                  ? 'bg-ophira-bg-card text-slate-200 border-ophira-bg-hover hover:bg-ophira-bg-hover'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
               }`}
               onClick={() => {
@@ -433,13 +371,13 @@ const Dashboard = () => {
 
             {showUbicacionMenu && (
               <div className={`absolute right-0 mt-2 w-[440px] max-w-[90vw] rounded-xl border shadow-lg z-20 p-4 space-y-4 ${
-                isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                isDark ? 'bg-ophira-bg-card border-ophira-bg-hover' : 'bg-white border-slate-200'
               }`}>
                 <div className="flex items-center justify-between">
                   <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Gestion de Ubicaciones</h3>
                   <button
                     className={`p-1 rounded transition ${
-                      isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                      isDark ? 'text-slate-400 hover:bg-ophira-bg-hover hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                     }`}
                       onClick={() => {
                         limpiarOperationStatus();
@@ -468,9 +406,9 @@ const Dashboard = () => {
                   <button
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
                       activeCreateForm === 'edificio'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-ophira-primary text-white'
                         : isDark
-                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-ophira-bg-hover text-slate-300 hover:bg-ophira-bg-hover/80'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => setActiveCreateForm('edificio')}
@@ -483,9 +421,9 @@ const Dashboard = () => {
                   <button
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
                       activeCreateForm === 'piso'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-ophira-primary text-white'
                         : isDark
-                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-ophira-bg-hover text-slate-300 hover:bg-ophira-bg-hover/80'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => {
@@ -501,9 +439,9 @@ const Dashboard = () => {
                   <button
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
                       activeCreateForm === 'aula'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-ophira-primary text-white'
                         : isDark
-                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-ophira-bg-hover text-slate-300 hover:bg-ophira-bg-hover/80'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                     onClick={() => {
@@ -525,8 +463,8 @@ const Dashboard = () => {
                       placeholder="Clave"
                       value={nuevoEdificio.clave}
                       onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, clave: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                       }`}
                     />
                     <input
@@ -534,8 +472,8 @@ const Dashboard = () => {
                       placeholder="Nombre"
                       value={nuevoEdificio.nombre}
                       onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, nombre: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                       }`}
                     />
                     <input
@@ -544,8 +482,8 @@ const Dashboard = () => {
                       placeholder="Cantidad de pisos"
                       value={nuevoEdificio.cantidad_pisos}
                       onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, cantidad_pisos: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                       }`}
                     />
                     <input
@@ -553,12 +491,12 @@ const Dashboard = () => {
                       placeholder="Direccion"
                       value={nuevoEdificio.direccion}
                       onChange={(event) => setNuevoEdificio((prev) => ({ ...prev, direccion: event.target.value }))}
-                      className={`md:col-span-2 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      className={`md:col-span-2 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                       }`}
                     />
                     <button
-                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      className="md:col-span-2 bg-ophira-primary text-white rounded-lg py-2 text-xs font-medium hover:bg-ophira-primary/90 transition"
                       onClick={crearEdificio}
                       type="button"
                     >
@@ -575,8 +513,8 @@ const Dashboard = () => {
                         const edificioId = event.target.value;
                         setNuevoPiso((prev) => ({ ...prev, edificioId, numero_piso: '' }));
                       }}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                     >
                       <option value="">Selecciona edificio</option>
@@ -587,8 +525,8 @@ const Dashboard = () => {
                     <select
                       value={nuevoPiso.numero_piso}
                       onChange={(event) => setNuevoPiso((prev) => ({ ...prev, numero_piso: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                     >
                       <option value="">Numero de piso</option>
@@ -619,7 +557,7 @@ const Dashboard = () => {
                       })}
                     </select>
                     <button
-                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      className="md:col-span-2 bg-ophira-primary text-white rounded-lg py-2 text-xs font-medium hover:bg-ophira-primary/90 transition"
                       onClick={crearPiso}
                       type="button"
                     >
@@ -654,8 +592,8 @@ const Dashboard = () => {
                       value={nuevaAula.pisoId}
                       onChange={(event) => setNuevaAula((prev) => ({ ...prev, pisoId: event.target.value, numero_aula: '' }))}
                       disabled={!nuevaAula.edificioId}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary disabled:opacity-60 ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                     >
                       <option value="">Selecciona piso</option>
@@ -667,8 +605,8 @@ const Dashboard = () => {
                     <select
                       value={nuevaAula.numero_aula}
                       onChange={(event) => setNuevaAula((prev) => ({ ...prev, numero_aula: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                       disabled={!nuevaAula.pisoId}
                     >
@@ -687,12 +625,12 @@ const Dashboard = () => {
                       placeholder="Tipo"
                       value={nuevaAula.tipo}
                       onChange={(event) => setNuevaAula((prev) => ({ ...prev, tipo: event.target.value }))}
-                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                        isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      className={`px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                        isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                       }`}
                     />
                     <button
-                      className="md:col-span-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                      className="md:col-span-2 bg-ophira-primary text-white rounded-lg py-2 text-xs font-medium hover:bg-ophira-primary/90 transition"
                       onClick={crearAula}
                       type="button"
                     >
@@ -703,20 +641,20 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
-            <Plus size={18} />
+          <button className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition" onClick={() => navigate('/activos/nuevo')}>
+            <Plus size={16} />
             Nuevo Activo
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div key={index} className={`rounded-xl p-6 shadow-sm border transition ${
               isDark 
-                ? 'bg-slate-800 border-slate-700' 
+                ? 'bg-ophira-bg-card border-ophira-bg-hover' 
                 : 'bg-white border-slate-200'
             }`}>
               <div className="flex items-start justify-between mb-4">
@@ -724,12 +662,14 @@ const Dashboard = () => {
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   stat.color === 'blue' ? isDark ? 'bg-blue-900/30' : 'bg-blue-100' :
                   stat.color === 'orange' ? isDark ? 'bg-orange-900/30' : 'bg-orange-100' :
+                  stat.color === 'red' ? isDark ? 'bg-red-900/30' : 'bg-red-100' :
                   stat.color === 'green' ? isDark ? 'bg-green-900/30' : 'bg-green-100' :
                   isDark ? 'bg-purple-900/30' : 'bg-purple-100'
                 }`}>
                   <Icon className={
                     stat.color === 'blue' ? 'text-blue-600' :
                     stat.color === 'orange' ? 'text-orange-600' :
+                    stat.color === 'red' ? 'text-red-600' :
                     stat.color === 'green' ? 'text-green-600' :
                     'text-purple-600'
                   } size={20} />
@@ -737,7 +677,9 @@ const Dashboard = () => {
               </div>
               <h3 className={`text-3xl font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>{stat.value}</h3>
               <p className={`text-sm flex items-center gap-1 ${
-                stat.trend === 'warning' ? 'text-orange-600' : 'text-green-600'
+                stat.trend === 'warning' ? 'text-orange-600' :
+                stat.trend === 'danger' ? 'text-red-600' :
+                'text-green-600'
               }`}>
                 {stat.trend === 'up' && <ArrowUp size={14} />}
                 {stat.change}
@@ -750,7 +692,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={`rounded-xl p-6 shadow-sm border transition relative ${
           isDark 
-            ? 'bg-slate-800 border-slate-700' 
+            ? 'bg-ophira-bg-card border-ophira-bg-hover' 
             : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between mb-6">
@@ -772,7 +714,7 @@ const Dashboard = () => {
 
           {showCategoriaMenu && (
             <div className={`absolute right-6 top-16 w-[320px] max-w-[85vw] rounded-xl border shadow-lg z-20 p-4 space-y-3 ${
-              isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+              isDark ? 'bg-ophira-bg-card border-ophira-bg-hover' : 'bg-white border-slate-200'
             }`}>
               <div className="flex items-center justify-between">
                 <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Nueva categoria</h3>
@@ -809,8 +751,8 @@ const Dashboard = () => {
                 placeholder="Nombre de categoria"
                 value={nuevaCategoria.nombre}
                 onChange={(event) => setNuevaCategoria((prev) => ({ ...prev, nombre: event.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                  isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary ${
+                  isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                 }`}
               />
 
@@ -818,13 +760,13 @@ const Dashboard = () => {
                 placeholder="Descripcion breve"
                 value={nuevaCategoria.descripcion}
                 onChange={(event) => setNuevaCategoria((prev) => ({ ...prev, descripcion: event.target.value }))}
-                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[88px] resize-none ${
-                  isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:border-ophira-primary focus:ring-1 focus:ring-ophira-primary min-h-[88px] resize-none ${
+                  isDark ? 'bg-ophira-bg-hover border-ophira-bg-hover text-slate-100 placeholder-slate-400' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                 }`}
               />
 
               <button
-                className="w-full bg-blue-600 text-white rounded-lg py-2 text-xs font-medium hover:bg-blue-700 transition"
+                className="w-full bg-ophira-primary text-white rounded-lg py-2 text-xs font-medium hover:bg-ophira-primary/90 transition"
                 onClick={crearCategoria}
                 type="button"
               >
@@ -874,16 +816,16 @@ const Dashboard = () => {
 
         <div className={`lg:col-span-2 rounded-xl p-6 shadow-sm border transition ${
           isDark 
-            ? 'bg-slate-800 border-slate-700' 
+            ? 'bg-ophira-bg-card border-ophira-bg-hover' 
             : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between mb-6">
             <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Actividad Reciente</h2>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">Ver Todo</button>
+            <button className="text-ophira-primary hover:text-ophira-primary/80 text-sm font-medium">Ver Todo</button>
           </div>
           <div className="max-h-[28rem] overflow-auto">
             <table className="w-full">
-              <thead className={`border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+              <thead className={`border-b ${isDark ? 'border-ophira-bg-hover' : 'border-slate-200'}`}>
                 <tr>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Activo</th>
                   <th className={`text-left text-xs font-semibold uppercase pb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Responsable</th>
@@ -895,10 +837,10 @@ const Dashboard = () => {
                 {actividades.map((actividad, index) => {
                   const Icon = actividad.icon;
                   return (
-                    <tr key={index} className={`border-b ${isDark ? 'border-slate-700 hover:bg-slate-700/50' : 'border-slate-100 hover:bg-slate-50'} last:border-0 transition`}>
+                    <tr key={index} className={`border-b ${isDark ? 'border-ophira-bg-hover hover:bg-ophira-bg-hover/30' : 'border-slate-100 hover:bg-slate-50'} last:border-0 transition`}>
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded flex items-center justify-center ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                          <div className={`w-8 h-8 rounded flex items-center justify-center ${isDark ? 'bg-ophira-bg-hover' : 'bg-slate-100'}`}>
                             <Icon size={16} className={isDark ? 'text-slate-300' : 'text-slate-600'} />
                           </div>
                           <div>
